@@ -1,19 +1,17 @@
+// app.ts - Express application setup
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import { initWebSockets } from "./socket";
 import authRoutes from "./routes/auth";
 import watchlistRoutes from "./routes/watchlist";
 import alertsRoutes from "./routes/alerts";
-import { createServer } from "http";
 import { PrismaClient } from "@prisma/client";
 
 dotenv.config();
 
 const app = express();
-const server = createServer(app);
 const prisma = new PrismaClient();
 
 // Middleware
@@ -38,7 +36,4 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 	res.status(500).json({ error: "Something went wrong!" });
 });
 
-// Start WebSockets
-const io = initWebSockets(server);
-
-export { app, server, io, prisma };
+export { app, prisma };
