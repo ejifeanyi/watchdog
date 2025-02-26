@@ -1,0 +1,47 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+        
+// schema.prisma
+model User {
+  id       String  @id @default(uuid())
+  name     String?
+  email    String  @unique
+  password String
+  watchlist Watchlist[]
+  alerts   Alert[]
+  createdAt DateTime @default(now())
+}
+
+model Watchlist {
+  id       String  @id @default(uuid())
+  userId   String
+  symbol   String  // Stock symbol (e.g., TSLA, AAPL)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Alert {
+  id        String  @id @default(uuid())
+  userId    String
+  symbol    String
+  targetPrice Float  // Price the user wants alert for
+  isTriggered Boolean @default(false) // Mark if alert was sent
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
