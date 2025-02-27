@@ -21,13 +21,15 @@ router.post(
 			const { name, email, password } = req.body;
 
 			if (!name || !email || !password) {
-				return res.status(400).json({ error: "All fields are required" });
+				res.status(400).json({ error: "All fields are required" });
+				return;
 			}
 
 			// Check if user exists
 			const existingUser = await prisma.user.findUnique({ where: { email } });
 			if (existingUser) {
-				return res.status(400).json({ error: "Email already in use" });
+				res.status(400).json({ error: "Email already in use" });
+				return;
 			}
 
 			// Hash password and create user
@@ -51,27 +53,34 @@ router.post(
 			res.status(500).json({ error: "Internal server error" });
 		}
 	}
-);
-// Login
-router.post(
-	"/login",
-	async (req: Request<{}, {}, AuthRequestBody>, res: Response) => {
-		const { email, password } = req.body;
-		const user = await prisma.user.findUnique({ where: { email } });
-		if (!user) {
-			res.status(401).json({ error: "Invalid credentials" });
-			return;
-		}
+),
+	// Login
+	router.post(
+		"/login",
+		async (req: Request<{}, {}, AuthRequestBody>, res: Response) => {
+			try {
+				const { email, password } = req.body;
+				const user = await prisma.user.findUnique({ where: { email } });
+				if (!user) {
+					res.status(401).json({ error: "Invalid credentials" });
+					return;
+				}
 
-		const isMatch = await bcrypt.compare(password, user.password);
-		if (!isMatch) {
-			res.status(401).json({ error: "Invalid credentials" });
-			return;
-		}
+				const isMatch = await bcrypt.compare(password, user.password);
+				if (!isMatch) {
+					res.status(401).json({ error: "Invalid credentials" });
+					return;
+				}
 
-		const token = jwt.sign({ userId: user.id }, "secret", { expiresIn: "7d" });
-		res.json({ token });
-	}
-);
+				const token = jwt.sign({ userId: user.id }, "secret", {
+					expiresIn: "7d",
+				});
+				res.json({ token });
+			} catch (error) {
+				console.error("Login error:", error);
+				res.status(500).json({ error: "Internal server error" });
+			}
+		}
+	);
 
 export default router;
