@@ -1,34 +1,57 @@
-import express, { Request, Response } from "express";
+import { Router, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
-const router = express.Router();
+const router = Router();
 
+// Signup
 interface AuthRequestBody {
+	name?: string;
 	email: string;
 	password: string;
 }
 
-// Signup
+// ✅ Define router POST for Signup
 router.post(
 	"/signup",
 	async (req: Request<{}, {}, AuthRequestBody>, res: Response) => {
-		const { email, password } = req.body;
-		const hashedPassword = await bcrypt.hash(password, 10);
-
 		try {
+			const { name, email, password } = req.body;
+
+			if (!name || !email || !password) {
+				return res.status(400).json({ error: "All fields are required" });
+			}
+
+			// Check if user exists
+			const existingUser = await prisma.user.findUnique({ where: { email } });
+			if (existingUser) {
+				return res.status(400).json({ error: "Email already in use" });
+			}
+
+			// Hash password and create user
+			const hashedPassword = await bcrypt.hash(password, 10);
 			const user = await prisma.user.create({
-				data: { email, password: hashedPassword },
+				data: { name, email, password: hashedPassword },
 			});
-			res.json({ message: "User created!", userId: user.id });
+
+			// Generate JWT token
+			const token = jwt.sign(
+				{ id: user.id, email: user.email, name: user.name },
+				"secret",
+				{
+					expiresIn: "15d",
+				}
+			);
+
+			res.json({ token });
 		} catch (error) {
-			res.status(500).json({ error: "User creation failed" });
+			console.error("Signup error:", error);
+			res.status(500).json({ error: "Internal server error" });
 		}
 	}
 );
-
 // Login
 router.post(
 	"/login",
