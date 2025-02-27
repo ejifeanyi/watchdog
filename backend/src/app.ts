@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import authRoutes from "./routes/auth";
 import watchlistRoutes from "./routes/watchlist";
 import alertsRoutes from "./routes/alerts";
+import stocksRoutes from "./routes/stocks";
 import { PrismaClient } from "@prisma/client";
 
 dotenv.config();
@@ -22,6 +23,7 @@ app.use(morgan("dev"));
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/stocks", stocksRoutes);
 app.use("/api/watchlist", watchlistRoutes);
 app.use("/api/alerts", alertsRoutes);
 
