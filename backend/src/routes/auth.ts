@@ -13,7 +13,7 @@ interface AuthRequestBody {
 	password: string;
 }
 
-// ✅ Define router POST for Signup
+// Signup route
 router.post(
 	"/signup",
 	async (req: Request<{}, {}, AuthRequestBody>, res: Response) => {
@@ -38,13 +38,11 @@ router.post(
 				data: { name, email, password: hashedPassword },
 			});
 
-			// Generate JWT token
+			// Generate JWT token - KEEP CONSISTENT PAYLOAD STRUCTURE
 			const token = jwt.sign(
-				{ id: user.id, email: user.email, name: user.name },
+				{ userId: user.id, email: user.email, name: user.name },
 				"secret",
-				{
-					expiresIn: "15d",
-				}
+				{ expiresIn: "15d" }
 			);
 
 			res.json({ token });
@@ -53,34 +51,39 @@ router.post(
 			res.status(500).json({ error: "Internal server error" });
 		}
 	}
-),
-	// Login
-	router.post(
-		"/login",
-		async (req: Request<{}, {}, AuthRequestBody>, res: Response) => {
-			try {
-				const { email, password } = req.body;
-				const user = await prisma.user.findUnique({ where: { email } });
-				if (!user) {
-					res.status(401).json({ error: "Invalid credentials" });
-					return;
-				}
+);
 
-				const isMatch = await bcrypt.compare(password, user.password);
-				if (!isMatch) {
-					res.status(401).json({ error: "Invalid credentials" });
-					return;
-				}
-
-				const token = jwt.sign({ userId: user.id }, "secret", {
-					expiresIn: "7d",
-				});
-				res.json({ token });
-			} catch (error) {
-				console.error("Login error:", error);
-				res.status(500).json({ error: "Internal server error" });
+// Login route
+router.post(
+	"/login",
+	async (req: Request<{}, {}, AuthRequestBody>, res: Response) => {
+		try {
+			const { email, password } = req.body;
+			const user = await prisma.user.findUnique({ where: { email } });
+			if (!user) {
+				res.status(401).json({ error: "Invalid credentials" });
+				return;
 			}
+
+			const isMatch = await bcrypt.compare(password, user.password);
+			if (!isMatch) {
+				res.status(401).json({ error: "Invalid credentials" });
+				return;
+			}
+
+			// Use consistent payload structure with signup
+			const token = jwt.sign(
+				{ userId: user.id, email: user.email, name: user.name },
+				"secret",
+				{ expiresIn: "7d" }
+			);
+
+			res.json({ token });
+		} catch (error) {
+			console.error("Login error:", error);
+			res.status(500).json({ error: "Internal server error" });
 		}
-	);
+	}
+);
 
 export default router;

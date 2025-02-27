@@ -1,19 +1,14 @@
+// app/page.tsx
+"use client";
+
+import React from "react";
+import { AuthProvider } from "@/context/auth-context";
 import HeroHeader from "@/components/header";
-import Navbar from "@/components/navbar";
-import PageLayout from "@/components/page-layout";
 
-export default function Home() {
+export default function HomePage() {
 	return (
-		<main className="min-h-screen flex flex-col">
-			<Navbar />
-
-			<PageLayout>
-				<div className="py-8">
-					<HeroHeader />
-
-					{/* Add more content here */}
-				</div>
-			</PageLayout>
-		</main>
+		<AuthProvider>
+			<HeroHeader />
+		</AuthProvider>
 	);
 }

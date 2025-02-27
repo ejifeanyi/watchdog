@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider } from "@/context/auth-context";
+import Navbar from "@/components/navbar";
+import PageLayout from "@/components/page-layout";
+import { StocksProvider } from "@/context/stocks-context";
+import ToastProvider from "./ToastProvider";
 
 const poppins = Poppins({
 	subsets: ["latin"],
@@ -30,7 +34,16 @@ export default function RootLayout({
 					enableSystem
 					disableTransitionOnChange
 				>
-					<AuthProvider>{children}</AuthProvider>
+					<AuthProvider>
+						<StocksProvider>
+							<ToastProvider>
+								<PageLayout>
+									<Navbar />
+									<main className="container py-6">{children}</main>
+								</PageLayout>
+							</ToastProvider>
+						</StocksProvider>
+					</AuthProvider>
 				</ThemeProvider>
 			</body>
 		</html>

@@ -1,0 +1,286 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { Stock } from "@/types";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, RefreshCw, Trash2, Bell } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import StockCard from "./stock-card";
+
+interface WatchlistProps {
+	onViewDetails?: (symbol: string) => void;
+}
+
+const Watchlist: React.FC<WatchlistProps> = ({ onViewDetails }) => {
+	const [watchlistStocks, setWatchlistStocks] = useState<Stock[]>([]);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState<string | null>(null);
+	const [removingStock, setRemovingStock] = useState<Record<string, boolean>>(
+		{}
+	);
+	const [settingAlert, setSettingAlert] = useState<Record<string, boolean>>({});
+
+	const fetchWatchlist = async () => {
+		setLoading(true);
+		setError(null);
+
+		try {
+			const token = localStorage.getItem("token");
+
+			if (!token) {
+				setError("Please log in to view your watchlist");
+				setLoading(false);
+				return;
+			}
+
+			const response = await fetch("http://localhost:5000/api/watchlist", {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+
+			if (response.status === 401) {
+				localStorage.removeItem("token");
+				setError("Your session has expired. Please log in again.");
+				return;
+			}
+
+			if (!response.ok) {
+				throw new Error(`HTTP error ${response.status}`);
+			}
+
+			const data = await response.json();
+			setWatchlistStocks(data);
+		} catch (error) {
+			console.error("Failed to fetch watchlist:", error);
+			setError("Unable to load your watchlist. Please try again.");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	useEffect(() => {
+		fetchWatchlist();
+	}, []);
+
+	const removeFromWatchlist = async (symbol: string) => {
+		setRemovingStock((prev) => ({ ...prev, [symbol]: true }));
+
+		try {
+			const token = localStorage.getItem("token");
+			if (!token) {
+				throw new Error("Authentication required");
+			}
+
+			const response = await fetch(
+				`http://localhost:5000/api/watchlist/${symbol}`,
+				{
+					method: "DELETE",
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				}
+			);
+
+			if (!response.ok) {
+				throw new Error(`HTTP error ${response.status}`);
+			}
+
+			// Update the local state to remove the stock
+			setWatchlistStocks((prev) =>
+				prev.filter((stock) => stock.symbol !== symbol)
+			);
+
+			toast.success("Removed from Watchlist", {
+				description: `${symbol} has been removed from your watchlist.`,
+			});
+		} catch (error) {
+			console.error("Failed to remove from watchlist:", error);
+			toast.error("Error", {
+				description: "Failed to remove from watchlist. Please try again.",
+			});
+		} finally {
+			setRemovingStock((prev) => ({ ...prev, [symbol]: false }));
+		}
+	};
+
+	const handleSetAlert = async (symbol: string, price: number) => {
+		setSettingAlert((prev) => ({ ...prev, [symbol]: true }));
+
+		try {
+			const token = localStorage.getItem("token");
+			if (!token) {
+				throw new Error("Authentication required");
+			}
+
+			const targetPrice = parseFloat(
+				prompt(`Set alert price for ${symbol}:`, price.toString()) || "0"
+			);
+
+			if (targetPrice <= 0 || isNaN(targetPrice)) {
+				toast.error("Invalid Price", {
+					description: "Please enter a valid price.",
+				});
+				return;
+			}
+
+			const response = await fetch("http://localhost:5000/api/alerts/add", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({ symbol, targetPrice }),
+			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP error ${response.status}`);
+			}
+
+			toast.success("Alert Set", {
+				description: `You will be notified when ${symbol} reaches $${targetPrice.toFixed(
+					2
+				)}.`,
+			});
+		} catch (error) {
+			console.error("Failed to set alert:", error);
+			toast.error("Error", {
+				description: "Failed to set alert. Please try again.",
+			});
+		} finally {
+			setSettingAlert((prev) => ({ ...prev, [symbol]: false }));
+		}
+	};
+
+	// Loading skeletons
+	if (loading) {
+		return (
+			<div className="space-y-4">
+				<div className="flex justify-between items-center mb-4">
+					<h2 className="text-xl font-semibold">Your Watchlist</h2>
+				</div>
+				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+					{[...Array(4)].map((_, i) => (
+						<Card key={i} className="overflow-hidden">
+							<CardContent className="p-4">
+								<div className="flex items-center justify-between mb-2">
+									<Skeleton className="h-8 w-24" />
+									<Skeleton className="h-6 w-16" />
+								</div>
+								<Skeleton className="h-8 w-32 mb-2" />
+								<Skeleton className="h-4 w-28 mb-4" />
+								<div className="flex gap-2">
+									<Skeleton className="h-9 w-full" />
+									<Skeleton className="h-9 w-full" />
+								</div>
+							</CardContent>
+						</Card>
+					))}
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="space-y-4">
+			{/* Header with title and refresh button */}
+			<div className="flex justify-between items-center mb-4">
+				<h2 className="text-xl font-semibold">Your Watchlist</h2>
+				<Button
+					onClick={fetchWatchlist}
+					variant="outline"
+					size="sm"
+					className="flex items-center gap-1"
+				>
+					<RefreshCw className="h-4 w-4" />
+					Refresh
+				</Button>
+			</div>
+
+			{/* Error message */}
+			{error && (
+				<Card className="bg-destructive/10 border-destructive/20 mb-4">
+					<CardContent className="pt-6">
+						<div className="flex items-start gap-2">
+							<AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+							<div>
+								<p className="text-destructive">{error}</p>
+								<Button
+									onClick={fetchWatchlist}
+									variant="outline"
+									size="sm"
+									className="mt-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+								>
+									<RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+									Try Again
+								</Button>
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+			)}
+
+			{/* Watchlist stocks */}
+			{watchlistStocks.length > 0 ? (
+				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+					{watchlistStocks.map((stock) => (
+						<div key={stock.symbol} className="relative">
+							<StockCard
+								stock={stock}
+								onViewDetails={onViewDetails}
+								inWatchlist={true}
+								showActions={true}
+								onAddToWatchlist={removeFromWatchlist}
+								onSetAlert={handleSetAlert}
+								isLoading={
+									removingStock[stock.symbol] || settingAlert[stock.symbol]
+								}
+								customButtons={
+									<>
+										<Button
+											variant="secondary"
+											size="sm"
+											className="flex items-center gap-1 group-hover:border-primary/50 transition-colors w-1/2"
+											onClick={() => removeFromWatchlist(stock.symbol)}
+											disabled={removingStock[stock.symbol]}
+										>
+											<Trash2 className="h-4 w-4" />
+											Remove
+										</Button>
+										<Button
+											variant="secondary"
+											size="sm"
+											className="flex items-center gap-1 group-hover:border-primary/50 transition-colors w-1/2"
+											onClick={() =>
+												handleSetAlert(stock.symbol, stock.price || 0)
+											}
+											disabled={settingAlert[stock.symbol] || !stock.price}
+										>
+											<Bell className="h-4 w-4" />
+											Alert
+										</Button>
+									</>
+								}
+							/>
+						</div>
+					))}
+				</div>
+			) : (
+				<Card className="bg-muted/30">
+					<CardContent className="flex flex-col items-center justify-center py-12">
+						<p className="text-muted-foreground text-center mb-2">
+							Your watchlist is empty
+						</p>
+						<p className="text-sm text-muted-foreground text-center mb-4">
+							Add stocks from the Trending section to keep track of them here
+						</p>
+					</CardContent>
+				</Card>
+			)}
+		</div>
+	);
+};
+
+export default Watchlist;

@@ -1,12 +1,17 @@
 "use client";
 
+import React from "react";
+import { useAuth } from "@/context/auth-context";
 import { Badge } from "@/components/ui/badge";
 import FeatureHighlights from "./feature-highlights";
+import StockDashboard from "./stocks-dashboard";
 
-export default function HeroHeader() {
+const HeroHeader: React.FC = () => {
+	const { isAuthenticated } = useAuth();
+
 	return (
-		<header className="w-full py-16 md:py-24 lg:py-32">
-			<div className="max-w-5xl mx-auto px-6 text-center">
+		<div className="container mx-auto px-4 py-16 text-center min-h-screen">
+			<div className="max-w-5xl mx-auto px-6 text-center mb-8">
 				{/* New: Subtle badge above headline */}
 				<Badge className="mb-6 bg-primary/10 text-primary hover:bg-primary/15 border-none">
 					Intelligent Market Monitoring
@@ -30,11 +35,18 @@ export default function HeroHeader() {
 					<div className="flex justify-center">
 						<div className="w-16 h-1 bg-primary/50 rounded-full"></div>
 					</div>
-
-					{/* Feature highlights in an enhanced card */}
-					<FeatureHighlights />
 				</div>
 			</div>
-		</header>
+
+			{isAuthenticated ? (
+				<StockDashboard />
+			) : (
+				<div className="mt-8">
+					<FeatureHighlights />
+				</div>
+			)}
+		</div>
 	);
-}
+};
+
+export default HeroHeader;

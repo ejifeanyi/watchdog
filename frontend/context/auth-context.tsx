@@ -11,7 +11,7 @@ import axios from "axios";
 import { jwtDecode } from "jwt-decode";
 
 interface User {
-	id: string;
+	userId: string; // Changed to match payload from backend
 	email: string;
 	name: string;
 }
@@ -61,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		setUser(jwtDecode<User>(res.data.token));
 		setIsAuthenticated(true);
 		closeModals();
+		window.location.reload();
 	};
 
 	const signup = async (name: string, email: string, password: string) => {
@@ -70,18 +71,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 			password,
 		});
 
-		// 🔹 If signup is successful, log in the user automatically
 		localStorage.setItem("token", res.data.token);
 		setUser(jwtDecode<User>(res.data.token));
 		setIsAuthenticated(true);
 		closeModals();
+		window.location.reload();
 	};
-
 
 	const logout = () => {
 		localStorage.removeItem("token");
 		setUser(null);
 		setIsAuthenticated(false);
+		window.location.reload();
 	};
 
 	const openLoginModal = () => {
