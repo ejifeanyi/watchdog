@@ -8,6 +8,7 @@ import authRoutes from "./routes/auth";
 import watchlistRoutes from "./routes/watchlist";
 import alertsRoutes from "./routes/alerts";
 import stocksRoutes from "./routes/stocks";
+import aiRoutes from "./routes/ai";
 import { PrismaClient } from "@prisma/client";
 
 dotenv.config();
@@ -26,6 +27,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/stocks", stocksRoutes);
 app.use("/api/watchlist", watchlistRoutes);
 app.use("/api/alerts", alertsRoutes);
+app.use("/api/ai", aiRoutes);
 
 // Health Check
 app.get("/", (req: Request, res: Response) => {

@@ -5,84 +5,85 @@ import { useStocks } from "@/context/stocks-context";
 import TrendingStocks from "./trending-stocks";
 import Watchlist from "./watchlist";
 import PriceAlerts from "./price-alerts";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Bell, LineChart, TrendingUp } from "lucide-react";
 
-const StockDashboard: React.FC = () => {
+// Create a custom event for navigation
+const NAVIGATION_EVENT = "stockDashboardNavigation";
+
+// Export this function to be used in the Navbar component
+interface DashboardView {
+	view: 'trending' | 'watchlist' | 'alerts';
+}
+
+interface DashboardNavigationEvent extends CustomEvent {
+	detail: DashboardView;
+}
+
+export const navigateToDashboardView = (view: DashboardView['view']): void => {
+	const event = new CustomEvent(NAVIGATION_EVENT, { detail: { view } }) as DashboardNavigationEvent;
+	window.dispatchEvent(event);
+};
+
+const StockDashboard = () => {
 	const {} = useStocks();
-	const [activeView, setActiveView] = useState<
-		"trending" | "watchlist" | "alerts"
-	>("trending");
+	const [activeView, setActiveView] = useState("trending");
 
-	// Listen for click on watchlist button in navbar
 	useEffect(() => {
-		const handleWatchlistClick = () => {
-			setActiveView("watchlist");
+		// Handle the custom navigation event
+		const handleNavigation = (event: Event): void => {
+			const customEvent = event as CustomEvent<DashboardView>;
+			if (customEvent.detail && customEvent.detail.view) {
+				setActiveView(customEvent.detail.view);
+			}
 		};
 
-		const handleAlertsClick = () => {
-			setActiveView("alerts");
-		};
+		// Add event listener for our custom event
+		window.addEventListener(NAVIGATION_EVENT, handleNavigation);
 
-		// Find all watchlist buttons
+		// Legacy support for direct button clicks as well
+		const handleWatchlistClick = () => setActiveView("watchlist");
+		const handleAlertsClick = () => setActiveView("alerts");
+		const handleTrendingClick = () => setActiveView("trending");
+
+		// Find all buttons by their data attributes
 		const watchlistButtons = document.querySelectorAll(
 			"[data-watchlist-button]"
 		);
+		const alertsButtons = document.querySelectorAll("[data-alerts-button]");
+		const trendingButtons = document.querySelectorAll("[data-trending-button]");
+
+		// Add event listeners
 		watchlistButtons.forEach((button) => {
 			button.addEventListener("click", handleWatchlistClick);
 		});
-
-		// Find all alerts buttons
-		const alertsButtons = document.querySelectorAll("[data-alerts-button]");
 		alertsButtons.forEach((button) => {
 			button.addEventListener("click", handleAlertsClick);
 		});
+		trendingButtons.forEach((button) => {
+			button.addEventListener("click", handleTrendingClick);
+		});
 
+		// Cleanup event listeners
 		return () => {
+			window.removeEventListener(NAVIGATION_EVENT, handleNavigation);
+
 			watchlistButtons.forEach((button) => {
 				button.removeEventListener("click", handleWatchlistClick);
 			});
 			alertsButtons.forEach((button) => {
 				button.removeEventListener("click", handleAlertsClick);
 			});
+			trendingButtons.forEach((button) => {
+				button.removeEventListener("click", handleTrendingClick);
+			});
 		};
 	}, []);
 
+	// Render the active view
 	return (
 		<div className="space-y-6 w-full">
-			<Tabs
-				value={activeView}
-				onValueChange={(value: string) =>
-					setActiveView(value as "trending" | "watchlist" | "alerts")
-				}
-			>
-				<TabsList className="grid grid-cols-3 mb-4">
-					<TabsTrigger value="trending" className="flex items-center gap-2">
-						<TrendingUp className="h-4 w-4" />
-						<span>Trending</span>
-					</TabsTrigger>
-					<TabsTrigger value="watchlist" className="flex items-center gap-2">
-						<LineChart className="h-4 w-4" />
-						<span>Watchlist</span>
-					</TabsTrigger>
-					<TabsTrigger value="alerts" className="flex items-center gap-2">
-						<Bell className="h-4 w-4" />
-						<span>Price Alerts</span>
-					</TabsTrigger>
-				</TabsList>
-
-				<TabsContent value="trending" className="mt-0">
-					<TrendingStocks />
-				</TabsContent>
-
-				<TabsContent value="watchlist" className="mt-0">
-					<Watchlist />
-				</TabsContent>
-
-				<TabsContent value="alerts" className="mt-0">
-					<PriceAlerts />
-				</TabsContent>
-			</Tabs>
+			{activeView === "trending" && <TrendingStocks />}
+			{activeView === "watchlist" && <Watchlist />}
+			{activeView === "alerts" && <PriceAlerts />}
 		</div>
 	);
 };

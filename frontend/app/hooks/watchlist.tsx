@@ -25,7 +25,7 @@ export function useWatchlist() {
 				throw new Error("Authentication required");
 			}
 
-			const response = await fetch("/api/watchlist", {
+			const response = await fetch("http://localhost:5000/api/watchlist", {
 				headers: {
 					Authorization: `Bearer ${token}`,
 				},
@@ -55,7 +55,7 @@ export function useWatchlist() {
 				throw new Error("Authentication required");
 			}
 
-			const response = await fetch("/api/watchlist/add", {
+			const response = await fetch("http://localhost:5000/api/watchlist/add", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",
@@ -98,7 +98,7 @@ export function useWatchlist() {
 				throw new Error("Authentication required");
 			}
 
-			const response = await fetch(`/api/watchlist/${symbol}`, {
+			const response = await fetch(`http://localhost:5000/api/watchlist/${symbol}`, {
 				method: "DELETE",
 				headers: {
 					Authorization: `Bearer ${token}`,

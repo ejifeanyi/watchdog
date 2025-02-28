@@ -5,10 +5,12 @@ import { useAuth } from "@/context/auth-context";
 import Link from "next/link";
 import Login from "./modals/login-modal";
 import Signup from "./modals/signup-modal";
-import { Bell, Eye, ChevronDown } from "lucide-react";
+import { Bell, Eye, ChevronDown, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
 import SearchBar from "./searchbar";
+import RecommendButton from "./recommend-button";
+import { navigateToDashboardView } from "./stocks-dashboard";
 
 export default function Navbar() {
 	const { isAuthenticated, user, logout, openLoginModal, openSignupModal } =
@@ -16,6 +18,9 @@ export default function Navbar() {
 
 	const [scrolled, setScrolled] = useState(false);
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+	// Get the first name from the full name
+	const firstName = user?.name ? user.name.split(" ")[0] : "";
 
 	// Handle scroll effect
 	useEffect(() => {
@@ -33,6 +38,13 @@ export default function Navbar() {
 	// Toggle mobile menu
 	const toggleMobileMenu = () => {
 		setIsMobileMenuOpen(!isMobileMenuOpen);
+	};
+
+	// Handle navigation
+	type DashboardView = 'trending' | 'watchlist' | 'alerts';
+
+	const handleNavigate = (view: DashboardView): void => {
+		navigateToDashboardView(view);
 	};
 
 	return (
@@ -78,7 +90,18 @@ export default function Navbar() {
 					<div className="hidden md:flex items-center space-x-1 lg:space-x-2">
 						<Button
 							variant="ghost"
+							data-trending-button="true"
+							onClick={() => handleNavigate("trending")} // Add this onClick handler
+							className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary"
+						>
+							<TrendingUp className="w-4 h-4" />
+							<span>Trending</span>
+						</Button>
+
+						<Button
+							variant="ghost"
 							data-watchlist-button="true"
+							onClick={() => handleNavigate("watchlist")} // Add this onClick handler
 							className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary"
 						>
 							<Eye className="w-4 h-4" />
@@ -88,11 +111,14 @@ export default function Navbar() {
 						<Button
 							variant="ghost"
 							data-alerts-button="true"
+							onClick={() => handleNavigate("alerts")} // Add this onClick handler
 							className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary relative"
 						>
 							<Bell className="w-4 h-4" />
 							<span>Alerts</span>
 						</Button>
+
+						<RecommendButton className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary relative" />
 
 						<div className="h-6 w-px bg-border mx-1"></div>
 
@@ -101,7 +127,7 @@ export default function Navbar() {
 						{isAuthenticated ? (
 							<>
 								<div className="px-3 py-1.5 rounded-full bg-secondary text-sm font-medium text-secondary-foreground">
-									Hi, {user?.name}
+									Hi, {firstName}
 								</div>
 								<Button
 									variant="outline"
@@ -147,7 +173,18 @@ export default function Navbar() {
 						<div className="flex flex-col space-y-2">
 							<Button
 								variant="ghost"
+								data-trending-button="true"
+								onClick={() => handleNavigate("trending")} // Add this onClick handler
+								className="flex items-center justify-start gap-2 w-full text-sm font-medium"
+							>
+								<TrendingUp className="w-4 h-4" />
+								<span>Trending</span>
+							</Button>
+
+							<Button
+								variant="ghost"
 								data-watchlist-button="true"
+								onClick={() => handleNavigate("watchlist")} // Add this onClick handler
 								className="flex items-center justify-start gap-2 w-full text-sm font-medium"
 							>
 								<Eye className="w-4 h-4" />
@@ -157,11 +194,14 @@ export default function Navbar() {
 							<Button
 								variant="ghost"
 								data-alerts-button="true"
+								onClick={() => handleNavigate("alerts")} // Add this onClick handler
 								className="flex items-center justify-start gap-2 w-full text-sm font-medium relative"
 							>
 								<Bell className="w-4 h-4" />
 								<span>Alerts</span>
 							</Button>
+
+							<RecommendButton className="flex items-center justify-start gap-2 w-full text-sm font-medium relative" />
 
 							<div className="flex items-center justify-between py-2">
 								<span className="text-sm text-muted-foreground">Theme</span>
@@ -171,7 +211,7 @@ export default function Navbar() {
 							{isAuthenticated ? (
 								<>
 									<div className="flex items-center justify-between py-2">
-										<div className="text-sm font-medium">Hi, {user?.name}</div>
+										<div className="text-sm font-medium">Hi, {firstName}</div>
 										<Button
 											variant="outline"
 											onClick={logout}
