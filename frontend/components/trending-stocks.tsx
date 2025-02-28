@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw, ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import StockCard from "./stock-card";
+import TrendingStockCard from "./trending-stock-card";
 
 const TrendingStocks: React.FC = () => {
 	const {
@@ -25,8 +25,6 @@ const TrendingStocks: React.FC = () => {
 	const [addingToWatchlist, setAddingToWatchlist] = useState<
 		Record<string, boolean>
 	>({});
-
-	const [settingAlert, setSettingAlert] = useState<Record<string, boolean>>({});
 
 	// Determine which stocks to show based on search state
 	const displayStocks = isSearching ? searchResults : trendingStocks;
@@ -78,50 +76,6 @@ const TrendingStocks: React.FC = () => {
 			});
 		} finally {
 			setAddingToWatchlist((prev) => ({ ...prev, [symbol]: false }));
-		}
-	};
-
-	// Set price alert
-	const setPriceAlert = async (symbol: string, price: number) => {
-		setSettingAlert((prev) => ({ ...prev, [symbol]: true }));
-
-		try {
-			const targetPrice = parseFloat(
-				prompt(`Set alert price for ${symbol}:`, price.toString()) || "0"
-			);
-
-			if (targetPrice <= 0 || isNaN(targetPrice)) {
-				toast.error("Invalid Price", {
-					description: "Please enter a valid price.",
-				});
-				return;
-			}
-
-			const response = await fetch("http://localhost:5000/api/alerts/add", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${localStorage.getItem("token")}`,
-				},
-				body: JSON.stringify({ symbol, targetPrice }),
-			});
-
-			if (!response.ok) {
-				throw new Error(`HTTP error ${response.status}`);
-			}
-
-			toast.success("Alert Set", {
-				description: `You will be notified when ${symbol} reaches $${targetPrice.toFixed(
-					2
-				)}.`,
-			});
-		} catch (error) {
-			console.error("Failed to set alert:", error);
-			toast.error("Error", {
-				description: "Failed to set alert. Please try again.",
-			});
-		} finally {
-			setSettingAlert((prev) => ({ ...prev, [symbol]: false }));
 		}
 	};
 
@@ -221,14 +175,15 @@ const TrendingStocks: React.FC = () => {
 			{displayStocks.length > 0 ? (
 				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 					{displayStocks.map((stock: Stock) => (
-						<StockCard
+						<TrendingStockCard
 							key={stock.symbol}
 							stock={stock}
 							onAddToWatchlist={addToWatchlist}
-							onSetAlert={setPriceAlert}
-							isLoading={
-								addingToWatchlist[stock.symbol] || settingAlert[stock.symbol]
-							}
+							onViewDetails={(symbol) => {
+								// You can implement the view details functionality here
+								console.log(`View details for ${symbol}`);
+							}}
+							isLoading={addingToWatchlist[stock.symbol]}
 						/>
 					))}
 				</div>

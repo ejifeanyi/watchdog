@@ -8,6 +8,14 @@ export interface Stock {
 	name?: string;
 }
 
+export interface Alert {
+	id: string;
+	symbol: string;
+	targetPrice: number;
+	userId: string;
+	createdAt: string;
+}
+
 export interface SearchHandlers {
 	onSearch: (query: string) => void;
 	onClear: () => void;

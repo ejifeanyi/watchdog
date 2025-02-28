@@ -87,7 +87,8 @@ export default function Navbar() {
 
 						<Button
 							variant="ghost"
-							className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary"
+							data-alerts-button="true"
+							className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary relative"
 						>
 							<Bell className="w-4 h-4" />
 							<span>Alerts</span>
@@ -155,7 +156,8 @@ export default function Navbar() {
 
 							<Button
 								variant="ghost"
-								className="flex items-center justify-start gap-2 w-full text-sm font-medium"
+								data-alerts-button="true"
+								className="flex items-center justify-start gap-2 w-full text-sm font-medium relative"
 							>
 								<Bell className="w-4 h-4" />
 								<span>Alerts</span>

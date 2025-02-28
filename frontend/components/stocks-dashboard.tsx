@@ -4,13 +4,14 @@ import React, { useState, useEffect } from "react";
 import { useStocks } from "@/context/stocks-context";
 import TrendingStocks from "./trending-stocks";
 import Watchlist from "./watchlist";
-import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Bell, LineChart, TrendingUp } from "lucide-react";
 
 const StockDashboard: React.FC = () => {
-	const { loadingTrending, fetchTrendingStocks } = useStocks();
-	const [activeView, setActiveView] = useState<"trending" | "watchlist">(
-		"trending"
-	);
+	const {} = useStocks();
+	const [activeView, setActiveView] = useState<
+		"trending" | "watchlist" | "alerts"
+	>("trending");
 
 	// Handle view details for stocks
 	const handleViewDetails = (symbol: string) => {
@@ -24,6 +25,10 @@ const StockDashboard: React.FC = () => {
 			setActiveView("watchlist");
 		};
 
+		const handleAlertsClick = () => {
+			setActiveView("alerts");
+		};
+
 		// Find all watchlist buttons
 		const watchlistButtons = document.querySelectorAll(
 			"[data-watchlist-button]"
@@ -32,30 +37,53 @@ const StockDashboard: React.FC = () => {
 			button.addEventListener("click", handleWatchlistClick);
 		});
 
+		// Find all alerts buttons
+		const alertsButtons = document.querySelectorAll("[data-alerts-button]");
+		alertsButtons.forEach((button) => {
+			button.addEventListener("click", handleAlertsClick);
+		});
+
 		return () => {
 			watchlistButtons.forEach((button) => {
 				button.removeEventListener("click", handleWatchlistClick);
+			});
+			alertsButtons.forEach((button) => {
+				button.removeEventListener("click", handleAlertsClick);
 			});
 		};
 	}, []);
 
 	return (
 		<div className="space-y-6 w-full">
-			{/* Stocks Display */}
-			{activeView === "trending" ? (
-				<TrendingStocks />
-			) : (
-				<Watchlist onViewDetails={handleViewDetails} />
-			)}
-
-			{/* Add a manual refresh button for debugging */}
-			<Button
-				onClick={() => fetchTrendingStocks()}
-				className="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90"
-				disabled={loadingTrending}
+			<Tabs
+				value={activeView}
+				onValueChange={(value: string) =>
+					setActiveView(value as "trending" | "watchlist" | "alerts")
+				}
 			>
-				{loadingTrending ? "Loading..." : "Refresh Stocks"}
-			</Button>
+				<TabsList className="grid grid-cols-3 mb-4">
+					<TabsTrigger value="trending" className="flex items-center gap-2">
+						<TrendingUp className="h-4 w-4" />
+						<span>Trending</span>
+					</TabsTrigger>
+					<TabsTrigger value="watchlist" className="flex items-center gap-2">
+						<LineChart className="h-4 w-4" />
+						<span>Watchlist</span>
+					</TabsTrigger>
+					<TabsTrigger value="alerts" className="flex items-center gap-2">
+						<Bell className="h-4 w-4" />
+						<span>Price Alerts</span>
+					</TabsTrigger>
+				</TabsList>
+
+				<TabsContent value="trending" className="mt-0">
+					<TrendingStocks />
+				</TabsContent>
+
+				<TabsContent value="watchlist" className="mt-0">
+					<Watchlist onViewDetails={handleViewDetails} />
+				</TabsContent>
+			</Tabs>
 		</div>
 	);
 };

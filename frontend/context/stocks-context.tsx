@@ -6,6 +6,7 @@ import React, {
 	useState,
 	useEffect,
 	ReactNode,
+	useCallback,
 } from "react";
 import axios from "axios";
 import { Stock } from "@/types";
@@ -28,6 +29,7 @@ interface StocksContextType {
 	setSearchQuery: (query: string) => void;
 	handleSearch: (query: string) => Promise<void>;
 	clearSearch: () => void;
+	getStockBySymbol: (symbol: string) => Stock | undefined;
 }
 
 const StocksContext = createContext<StocksContextType | null>(null);
@@ -103,6 +105,14 @@ export const StocksProvider: React.FC<{ children: ReactNode }> = ({
 		}
 	};
 
+	  const getStockBySymbol = useCallback(
+			(symbol: string): Stock | undefined => {
+				const allStocks = [...trendingStocks, ...searchResults];
+				return allStocks.find((stock) => stock.symbol === symbol);
+			},
+			[trendingStocks, searchResults]
+		);
+
 	// Clear search
 	const clearSearch = (): void => {
 		setSearchQuery("");
@@ -128,6 +138,8 @@ export const StocksProvider: React.FC<{ children: ReactNode }> = ({
 				setSearchQuery,
 				handleSearch,
 				clearSearch,
+
+				getStockBySymbol,
 			}}
 		>
 			{children}

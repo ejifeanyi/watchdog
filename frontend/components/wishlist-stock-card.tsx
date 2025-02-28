@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
 	Card,
 	CardContent,
@@ -9,83 +9,62 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Bell, Eye, LineChart } from "lucide-react";
+import { Bell, Trash2 } from "lucide-react";
 import { Stock } from "@/types";
 import { toast } from "sonner";
+import { useAlerts } from "@/context/alert-context";
 
-interface StockCardProps {
+interface WishlistStockCardProps {
 	stock: Stock;
-	onAddToWatchlist?: (symbol: string) => Promise<void>;
-	onSetAlert?: (symbol: string, price: number) => Promise<void>;
+	onRemoveFromWatchlist?: (symbol: string) => Promise<void>;
 	onViewDetails?: (symbol: string) => void;
-	inWatchlist?: boolean;
-	hasAlert?: boolean;
-	showActions?: boolean;
 	isLoading?: boolean;
-	customButtons?: React.ReactNode;
 }
 
-const StockCard: React.FC<StockCardProps> = ({
+const WishlistStockCard: React.FC<WishlistStockCardProps> = ({
 	stock,
-	onAddToWatchlist,
-	onSetAlert,
-	onViewDetails,
-	inWatchlist = false,
-	hasAlert = false,
-	showActions = true,
+	onRemoveFromWatchlist,
 	isLoading = false,
-	customButtons = null,
 }) => {
-	const [isAddingToWatchlist, setIsAddingToWatchlist] = React.useState(false);
-	const [isSettingAlert, setIsSettingAlert] = React.useState(false);
+	const [isRemoving, setIsRemoving] = useState(false);
+	const [isAddingToAlert, setIsAddingToAlert] = useState(false);
+	const { openAlertDialog } = useAlerts();
 
-	const handleAddToWatchlist = async () => {
-		if (!onAddToWatchlist) return;
+	const handleRemoveFromWatchlist = async () => {
+		if (!onRemoveFromWatchlist) return;
 
-		setIsAddingToWatchlist(true);
+		setIsRemoving(true);
 		try {
-			// Call the provided callback instead of making a direct fetch
-			await onAddToWatchlist(stock.symbol);
+			await onRemoveFromWatchlist(stock.symbol);
 
-			toast.success(`${stock.symbol} added to watchlist`, {
+			toast.success(`${stock.symbol} removed from watchlist`, {
 				description: stock.name
-					? `Successfully added ${stock.name}`
+					? `Successfully removed ${stock.name}`
 					: undefined,
-				icon: <Eye className="h-4 w-4" />,
+				icon: <Trash2 className="h-4 w-4" />,
 			});
 		} catch (error: unknown) {
-			toast.error(`Failed to add ${stock.symbol} to watchlist`, {
+			toast.error(`Failed to remove ${stock.symbol} from watchlist`, {
 				description:
 					error instanceof Error ? error.message : "Please try again later",
 			});
 		} finally {
-			setIsAddingToWatchlist(false);
+			setIsRemoving(false);
 		}
 	};
 
-	const handleSetAlert = async () => {
-		if (!onSetAlert) return;
-
-		setIsSettingAlert(true);
+	const handleAddToAlerts = async () => {
+		setIsAddingToAlert(true);
 		try {
-			await onSetAlert(stock.symbol, stock.price || 0);
-			toast.success(`Alert set for ${stock.symbol}`, {
-				description: `We'll notify you of significant changes`,
-				icon: <Bell className="h-4 w-4" />,
-			});
+			// Open the alert dialog with the current stock
+			openAlertDialog(stock);
 		} catch (error: unknown) {
 			toast.error(`Failed to set alert for ${stock.symbol}`, {
 				description:
 					error instanceof Error ? error.message : "Please try again later",
 			});
 		} finally {
-			setIsSettingAlert(false);
-		}
-	};
-
-	const handleViewDetails = () => {
-		if (onViewDetails) {
-			onViewDetails(stock.symbol);
+			setIsAddingToAlert(false);
 		}
 	};
 
@@ -148,45 +127,29 @@ const StockCard: React.FC<StockCardProps> = ({
 			</CardContent>
 
 			<CardFooter className="flex justify-between gap-2 pt-2 border-t">
-				{customButtons ? (
-					customButtons
-				) : showActions ? (
-					<>
-						<Button
-							variant={inWatchlist ? "default" : "secondary"}
-							size="sm"
-							className="flex items-center gap-1 group-hover:border-primary/50 transition-colors w-1/2"
-							onClick={handleAddToWatchlist}
-							disabled={isAddingToWatchlist || inWatchlist || isLoading}
-						>
-							<Eye className="h-4 w-4" />
-							{inWatchlist ? "Watching" : "Watch"}
-						</Button>
-						<Button
-							variant={hasAlert ? "default" : "secondary"}
-							size="sm"
-							className="flex items-center gap-1 group-hover:border-primary/50 transition-colors w-1/2"
-							onClick={handleSetAlert}
-							disabled={isSettingAlert || !stock.price || hasAlert || isLoading}
-						>
-							<Bell className="h-4 w-4" />
-							{hasAlert ? "Alerted" : "Alert"}
-						</Button>
-					</>
-				) : (
-					<Button
-						variant="outline"
-						size="sm"
-						className="w-full flex items-center gap-1"
-						onClick={handleViewDetails}
-					>
-						<LineChart className="h-4 w-4" />
-						View Details
-					</Button>
-				)}
+				<Button
+					variant="secondary"
+					size="sm"
+					className="flex items-center gap-1 transition-colors w-1/2"
+					onClick={handleAddToAlerts}
+					disabled={isAddingToAlert || isLoading}
+				>
+					<Bell className="h-4 w-4" />
+					Alert
+				</Button>
+				<Button
+					variant="secondary"
+					size="sm"
+					className="w-1/2 flex items-center gap-1"
+					onClick={handleRemoveFromWatchlist}
+					disabled={isRemoving || isLoading}
+				>
+					<Trash2 className="h-4 w-4" />
+					Remove
+				</Button>
 			</CardFooter>
 		</Card>
 	);
 };
 
-export default StockCard;
+export default WishlistStockCard;

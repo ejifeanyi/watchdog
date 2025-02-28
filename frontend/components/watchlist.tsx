@@ -4,10 +4,10 @@ import React, { useEffect, useState } from "react";
 import { Stock } from "@/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCw, Trash2, Bell } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import StockCard from "./stock-card";
+import WishlistStockCard from "./wishlist-stock-card";
 
 interface WatchlistProps {
 	onViewDetails?: (symbol: string) => void;
@@ -20,7 +20,6 @@ const Watchlist: React.FC<WatchlistProps> = ({ onViewDetails }) => {
 	const [removingStock, setRemovingStock] = useState<Record<string, boolean>>(
 		{}
 	);
-	const [settingAlert, setSettingAlert] = useState<Record<string, boolean>>({});
 
 	const fetchWatchlist = async () => {
 		setLoading(true);
@@ -106,54 +105,6 @@ const Watchlist: React.FC<WatchlistProps> = ({ onViewDetails }) => {
 		}
 	};
 
-	const handleSetAlert = async (symbol: string, price: number) => {
-		setSettingAlert((prev) => ({ ...prev, [symbol]: true }));
-
-		try {
-			const token = localStorage.getItem("token");
-			if (!token) {
-				throw new Error("Authentication required");
-			}
-
-			const targetPrice = parseFloat(
-				prompt(`Set alert price for ${symbol}:`, price.toString()) || "0"
-			);
-
-			if (targetPrice <= 0 || isNaN(targetPrice)) {
-				toast.error("Invalid Price", {
-					description: "Please enter a valid price.",
-				});
-				return;
-			}
-
-			const response = await fetch("http://localhost:5000/api/alerts/add", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${token}`,
-				},
-				body: JSON.stringify({ symbol, targetPrice }),
-			});
-
-			if (!response.ok) {
-				throw new Error(`HTTP error ${response.status}`);
-			}
-
-			toast.success("Alert Set", {
-				description: `You will be notified when ${symbol} reaches $${targetPrice.toFixed(
-					2
-				)}.`,
-			});
-		} catch (error) {
-			console.error("Failed to set alert:", error);
-			toast.error("Error", {
-				description: "Failed to set alert. Please try again.",
-			});
-		} finally {
-			setSettingAlert((prev) => ({ ...prev, [symbol]: false }));
-		}
-	};
-
 	// Loading skeletons
 	if (loading) {
 		return (
@@ -226,45 +177,13 @@ const Watchlist: React.FC<WatchlistProps> = ({ onViewDetails }) => {
 			{watchlistStocks.length > 0 ? (
 				<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
 					{watchlistStocks.map((stock) => (
-						<div key={stock.symbol} className="relative">
-							<StockCard
-								stock={stock}
-								onViewDetails={onViewDetails}
-								inWatchlist={true}
-								showActions={true}
-								onAddToWatchlist={removeFromWatchlist}
-								onSetAlert={handleSetAlert}
-								isLoading={
-									removingStock[stock.symbol] || settingAlert[stock.symbol]
-								}
-								customButtons={
-									<>
-										<Button
-											variant="secondary"
-											size="sm"
-											className="flex items-center gap-1 group-hover:border-primary/50 transition-colors w-1/2"
-											onClick={() => removeFromWatchlist(stock.symbol)}
-											disabled={removingStock[stock.symbol]}
-										>
-											<Trash2 className="h-4 w-4" />
-											Remove
-										</Button>
-										<Button
-											variant="secondary"
-											size="sm"
-											className="flex items-center gap-1 group-hover:border-primary/50 transition-colors w-1/2"
-											onClick={() =>
-												handleSetAlert(stock.symbol, stock.price || 0)
-											}
-											disabled={settingAlert[stock.symbol] || !stock.price}
-										>
-											<Bell className="h-4 w-4" />
-											Alert
-										</Button>
-									</>
-								}
-							/>
-						</div>
+						<WishlistStockCard
+							key={stock.symbol}
+							stock={stock}
+							onViewDetails={onViewDetails}
+							onRemoveFromWatchlist={removeFromWatchlist}
+							isLoading={removingStock[stock.symbol]}
+						/>
 					))}
 				</div>
 			) : (

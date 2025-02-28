@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
-import { ThemeProvider } from "next-themes";
 import "./globals.css";
-import { AuthProvider } from "@/context/auth-context";
-import Navbar from "@/components/navbar";
-import PageLayout from "@/components/page-layout";
-import { StocksProvider } from "@/context/stocks-context";
-import ToastProvider from "./ToastProvider";
+
+import Providers from "./Providers";
 
 const poppins = Poppins({
 	subsets: ["latin"],
@@ -28,23 +24,9 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body className={`${poppins.variable} font-sans antialiased`}>
-				<ThemeProvider
-					attribute="class"
-					defaultTheme="system"
-					enableSystem
-					disableTransitionOnChange
-				>
-					<AuthProvider>
-						<StocksProvider>
-							<ToastProvider>
-								<PageLayout>
-									<Navbar />
-									<main className="container py-6">{children}</main>
-								</PageLayout>
-							</ToastProvider>
-						</StocksProvider>
-					</AuthProvider>
-				</ThemeProvider>
+				<Providers>
+					<main className="container py-6">{children}</main>
+				</Providers>
 			</body>
 		</html>
 	);
