@@ -7,11 +7,6 @@ const API_KEY = process.env.POLYGON_API_KEY || "";
 const TRENDING_STOCKS_KEY = "trendingStocks";
 const TRENDING_UPDATE_INTERVAL = 60;
 
-const getTodayDate = () => {
-	const today = new Date();
-	return today.toISOString().split("T")[0]; // Returns YYYY-MM-DD
-};
-
 // Get previous trading day (simple approximation)
 const getPreviousTradingDay = () => {
 	const today = new Date();
@@ -102,36 +97,105 @@ router.get("/trending", async (req: Request, res: Response) => {
 	}
 });
 
-// ✅ Route: Search for Stocks (Uses Polygon API)
+// ✅ Route: Search for Stocks with Cached Prices
 router.get("/search", async (req: Request, res: Response) => {
 	try {
 		const { query } = req.query;
 		if (!query || typeof query !== "string") {
 			res.status(400).json({ error: "Search query is required" });
-			return;
+			return; // Early return is fine, but don't return the response object
 		}
 
 		console.log(`🔎 Searching for stocks with query: "${query}"`);
 
+		// 1️⃣ Fetch Matching Stocks (Name & Symbol)
 		const url = `https://api.polygon.io/v3/reference/tickers?search=${encodeURIComponent(
 			query
 		)}&active=true&apiKey=${API_KEY}`;
-
-		console.log(`📡 API Request: ${url.replace(API_KEY, "API_KEY_HIDDEN")}`);
-
 		const response = await axios.get(url);
 		const stocks = response.data.results || [];
-		console.log(
-			`📊 Found ${stocks.length} matching stocks for query "${query}"`
-		);
 
-		// 2️⃣ Format Results
-		const filteredStocks = stocks.map((stock: any) => ({
-			symbol: stock.ticker,
-			name: stock.name,
-		}));
+		if (stocks.length === 0) {
+			res.json([]); // No return here
+			return;
+		}
 
-		res.json(filteredStocks);
+		console.log(`📊 Found ${stocks.length} matching stocks`);
+
+		// 2️⃣ Fetch Stock Prices (Check Redis First)
+		const priceRequests = stocks.slice(0, 5).map(async (stock: any) => {
+			const cacheKey = `stock:${stock.ticker}`;
+			const cachedPrice = await redis.get(cacheKey);
+
+			if (cachedPrice) {
+				console.log(`🔵 Cache Hit: ${stock.ticker} = $${cachedPrice}`);
+				return {
+					symbol: stock.ticker,
+					name: stock.name,
+					price: parseFloat(cachedPrice),
+					change: null,
+					changePercent: null,
+					volume: null,
+				};
+			}
+
+			try {
+				const priceUrl = `https://api.polygon.io/v2/aggs/ticker/${stock.ticker}/prev?apiKey=${API_KEY}`;
+				const priceResponse = await axios.get(priceUrl);
+				const priceData = priceResponse.data.results?.[0];
+
+				const stockPrice = priceData?.c || null;
+
+				// ✅ Cache stock price in Redis (expires in 60 sec)
+				if (stockPrice !== null) {
+					await redis.set(cacheKey, stockPrice.toString(), "EX", 60);
+				}
+
+				return {
+					symbol: stock.ticker,
+					name: stock.name,
+					price: stockPrice,
+					change: priceData ? priceData.c - priceData.o : null,
+					changePercent: priceData
+						? (((priceData.c - priceData.o) / priceData.o) * 100).toFixed(2) +
+						  "%"
+						: null,
+					volume: priceData?.v || null,
+				};
+			} catch (error: any) {
+				if (error.response?.status === 429) {
+					console.error(
+						`❌ Rate limit hit for ${stock.ticker}: Returning cached price if available.`
+					);
+					const cachedFallback = await redis.get(cacheKey);
+					return {
+						symbol: stock.ticker,
+						name: stock.name,
+						price: cachedFallback ? parseFloat(cachedFallback) : null,
+						change: null,
+						changePercent: null,
+						volume: null,
+					};
+				}
+				console.error(
+					`❌ Error fetching price for ${stock.ticker}:`,
+					error.message
+				);
+				return {
+					symbol: stock.ticker,
+					name: stock.name,
+					price: null,
+					change: null,
+					changePercent: null,
+					volume: null,
+				};
+			}
+		});
+
+		const enhancedStocks = await Promise.all(priceRequests);
+
+		console.log("✅ Enhanced stocks with prices:", enhancedStocks);
+		res.json(enhancedStocks); // No return here
 	} catch (error) {
 		console.error("❌ Error searching stocks:", error);
 
@@ -144,8 +208,7 @@ router.get("/search", async (req: Request, res: Response) => {
 			});
 		}
 
-		res.status(500).json({ error: "Failed to search stocks" });
+		res.status(500).json({ error: "Failed to search stocks" }); // No return here
 	}
 });
-
 export default router;

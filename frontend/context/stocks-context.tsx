@@ -11,6 +11,15 @@ import React, {
 import axios from "axios";
 import { Stock } from "@/types";
 
+interface RawStockData {
+  symbol: string;
+  name?: string;
+  price?: number;
+  volume?: number;
+  change?: number;
+  changePercent?: number;
+}
+
 // Make sure the API_BASE_URL points to your backend
 const API_BASE_URL = "http://localhost:5000"; // Update this to your backend URL
 
@@ -49,7 +58,6 @@ export const StocksProvider: React.FC<{ children: ReactNode }> = ({
 	const [searchError, setSearchError] = useState<string | null>(null);
 
 	// Fetch trending stocks
-	// Fetch trending stocks
 	const fetchTrendingStocks = React.useCallback(async (): Promise<void> => {
 		setLoadingTrending(true);
 		setTrendingError(null);
@@ -72,12 +80,6 @@ export const StocksProvider: React.FC<{ children: ReactNode }> = ({
 		}
 	}, []); // Empty dependency array because it doesn't depend on any props or state
 
-	// Load trending stocks on initial render
-	useEffect(() => {
-		console.log("🚀 StocksProvider mounted, fetching trending stocks...");
-		fetchTrendingStocks();
-	}, [fetchTrendingStocks]); // Now we can safely add fetchTrendingStocks as a dependency
-
 	// Handle search
 	const handleSearch = async (query: string): Promise<void> => {
 		if (!query.trim()) {
@@ -85,33 +87,36 @@ export const StocksProvider: React.FC<{ children: ReactNode }> = ({
 			return;
 		}
 
-		setSearchQuery(query);
 		setIsSearching(true);
 		setSearchError(null);
 
 		try {
-			console.log(`🔎 Searching for stocks with query: "${query}"`);
-			const response = await axios.get<Stock[]>(
-				`${API_BASE_URL}/api/stocks/search?query=${encodeURIComponent(query)}`
-			);
-			console.log("🔎 Search results:", response.data);
-			setSearchResults(response.data);
+			const response = await axios.get(`${API_BASE_URL}/api/stocks/search`, {
+				params: { query },
+			});
+
+			console.log(`🔍 Search results:`, response.data);
+
+			// Transform search results to match the Stock type
+			// Note that search results may not have all the data that trending stocks have
+			const formattedResults = response.data.map((stock: RawStockData) => ({
+				symbol: stock.symbol,
+				name: stock.name || "",
+				price: stock.price || null,
+				volume: stock.volume || null,
+				change: stock.change || null,
+				changePercent: stock.changePercent || null,
+			}));
+
+			setSearchResults(formattedResults);
 		} catch (err) {
 			console.error("❌ Error searching stocks:", err);
-			setSearchError("Failed to search stocks. Please try again.");
+			setSearchError("Failed to search stocks. Please try again later.");
 			setSearchResults([]);
 		} finally {
 			setIsSearching(false);
 		}
 	};
-
-	  const getStockBySymbol = useCallback(
-			(symbol: string): Stock | undefined => {
-				const allStocks = [...trendingStocks, ...searchResults];
-				return allStocks.find((stock) => stock.symbol === symbol);
-			},
-			[trendingStocks, searchResults]
-		);
 
 	// Clear search
 	const clearSearch = (): void => {
@@ -120,6 +125,20 @@ export const StocksProvider: React.FC<{ children: ReactNode }> = ({
 		setIsSearching(false);
 		setSearchError(null);
 	};
+
+	// Load trending stocks on initial render
+	useEffect(() => {
+		console.log("🚀 StocksProvider mounted, fetching trending stocks...");
+		fetchTrendingStocks();
+	}, [fetchTrendingStocks]); // Now we can safely add fetchTrendingStocks as a dependency
+
+	const getStockBySymbol = useCallback(
+		(symbol: string): Stock | undefined => {
+			const allStocks = [...trendingStocks, ...searchResults];
+			return allStocks.find((stock) => stock.symbol === symbol);
+		},
+		[trendingStocks, searchResults]
+	);
 
 	return (
 		<StocksContext.Provider

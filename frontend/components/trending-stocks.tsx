@@ -18,6 +18,7 @@ const TrendingStocks: React.FC = () => {
 		searchResults,
 		isSearching,
 		searchQuery,
+		searchError,
 		clearSearch,
 		fetchTrendingStocks,
 	} = useStocks();
@@ -27,12 +28,13 @@ const TrendingStocks: React.FC = () => {
 	>({});
 
 	// Determine which stocks to show based on search state
-	const displayStocks = isSearching ? searchResults : trendingStocks;
+	const displayStocks = searchQuery ? searchResults : trendingStocks;
+	const isLoading = searchQuery ? isSearching : loadingTrending;
+	const error = searchQuery ? searchError : trendingError;
 
 	// Function to handle going back to trending
 	const handleShowTrending = () => {
 		clearSearch();
-		fetchTrendingStocks();
 	};
 
 	// Add to watchlist
@@ -80,11 +82,15 @@ const TrendingStocks: React.FC = () => {
 	};
 
 	// Loading skeletons
-	if (loadingTrending && !isSearching) {
+	if (isLoading) {
 		return (
 			<div className="space-y-4">
 				<div className="flex justify-between items-center mb-4">
-					<h2 className="text-xl font-semibold">Trending Stocks</h2>
+					<h2 className="text-xl font-semibold">
+						{searchQuery
+							? `Searching for "${searchQuery}"...`
+							: "Trending Stocks"}
+					</h2>
 				</div>
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 					{[...Array(6)].map((_, i) => (
@@ -113,10 +119,10 @@ const TrendingStocks: React.FC = () => {
 			{/* Header with title and context-aware actions */}
 			<div className="flex justify-between items-center mb-4">
 				<h2 className="text-xl font-semibold">
-					{isSearching ? `Search Results: ${searchQuery}` : "Trending Stocks"}
+					{searchQuery ? `Search Results: "${searchQuery}"` : "Trending Stocks"}
 				</h2>
 
-				{isSearching && (
+				{searchQuery && (
 					<Button
 						onClick={handleShowTrending}
 						variant="outline"
@@ -130,21 +136,23 @@ const TrendingStocks: React.FC = () => {
 			</div>
 
 			{/* Error message */}
-			{trendingError && !isSearching && (
+			{error && (
 				<Card className="bg-destructive/10 border-destructive/20 mb-4">
 					<CardContent className="pt-6">
 						<div className="flex items-start gap-2">
 							<AlertCircle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
 							<div>
-								<p className="text-destructive">{trendingError}</p>
+								<p className="text-destructive">{error}</p>
 								<Button
-									onClick={fetchTrendingStocks}
+									onClick={
+										searchQuery ? () => clearSearch() : fetchTrendingStocks
+									}
 									variant="outline"
 									size="sm"
 									className="mt-2 text-destructive border-destructive/30 hover:bg-destructive/10"
 								>
 									<RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-									Try Again
+									{searchQuery ? "Clear Search" : "Try Again"}
 								</Button>
 							</div>
 						</div>
@@ -153,7 +161,7 @@ const TrendingStocks: React.FC = () => {
 			)}
 
 			{/* Search results message if no results */}
-			{isSearching && searchResults.length === 0 && (
+			{searchQuery && searchResults.length === 0 && !isLoading && !error && (
 				<Card className="bg-muted/30">
 					<CardContent className="flex flex-col items-center justify-center py-12">
 						<p className="text-muted-foreground text-center mb-2">
@@ -188,22 +196,25 @@ const TrendingStocks: React.FC = () => {
 					))}
 				</div>
 			) : (
-				<Card className="bg-muted/30">
-					<CardContent className="flex flex-col items-center justify-center py-12">
-						<p className="text-muted-foreground text-center mb-2">
-							No stocks available to display
-						</p>
-						<Button
-							onClick={fetchTrendingStocks}
-							variant="outline"
-							size="sm"
-							className="mt-2"
-						>
-							<RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-							Refresh Data
-						</Button>
-					</CardContent>
-				</Card>
+				!searchQuery &&
+				!error && (
+					<Card className="bg-muted/30">
+						<CardContent className="flex flex-col items-center justify-center py-12">
+							<p className="text-muted-foreground text-center mb-2">
+								No trending stocks available to display
+							</p>
+							<Button
+								onClick={fetchTrendingStocks}
+								variant="outline"
+								size="sm"
+								className="mt-2"
+							>
+								<RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+								Refresh Data
+							</Button>
+						</CardContent>
+					</Card>
+				)
 			)}
 		</div>
 	);

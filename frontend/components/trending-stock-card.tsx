@@ -72,7 +72,11 @@ const TrendingStockCard: React.FC<TrendingStockCardProps> = ({
 
 	// Determine if change is positive, negative, or neutral
 	const getChangeClass = () => {
-		if (!stock.change || stock.change === 0)
+		if (
+			stock.change === null ||
+			stock.change === undefined ||
+			stock.change === 0
+		)
 			return "bg-gray-500/10 text-gray-500";
 		return stock.change > 0
 			? "bg-green-500/10 text-green-500"
@@ -112,7 +116,7 @@ const TrendingStockCard: React.FC<TrendingStockCardProps> = ({
 				</div>
 				<div className="flex items-center my-3 justify-between">
 					<p className="text-xs text-muted-foreground text-left">
-						{stock.change !== undefined
+						{stock.change !== null && stock.change !== undefined
 							? `${stock.change > 0 ? "+" : ""}$${stock.change.toFixed(
 									2
 							  )} today`

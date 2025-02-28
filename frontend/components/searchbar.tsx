@@ -24,6 +24,12 @@ const SearchBar: React.FC = () => {
 		}
 	};
 
+	const handleSearchClick = () => {
+		if (searchQuery.trim()) {
+			handleSearch(searchQuery);
+		}
+	};
+
 	return (
 		<div className="relative w-full max-w-xs lg:max-w-md mx-4">
 			<div className="relative">
@@ -38,10 +44,10 @@ const SearchBar: React.FC = () => {
 				/>
 				<Search
 					size={16}
-					className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
+					className={`absolute left-3 top-1/2 transform -translate-y-1/2 cursor-pointer ${
 						isSearching ? "animate-pulse text-primary" : "text-muted-foreground"
 					}`}
-					onClick={() => handleSearch(searchQuery)}
+					onClick={handleSearchClick}
 				/>
 				{searchQuery && (
 					<button
