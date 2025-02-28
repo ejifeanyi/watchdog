@@ -9,17 +9,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import AlertStockCard from "./alert-stock-card";
 
-interface AlertsProps {
-	onViewDetails?: (symbol: string) => void;
-}
-
 interface AlertItem extends Stock {
 	id: string;
 	targetPrice: number;
 	condition: "above" | "below";
 }
 
-const PriceAlerts: React.FC<AlertsProps> = ({ onViewDetails }) => {
+const PriceAlerts = () => {
 	const [alerts, setAlerts] = useState<AlertItem[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
@@ -57,6 +53,7 @@ const PriceAlerts: React.FC<AlertsProps> = ({ onViewDetails }) => {
 			}
 
 			const data = await response.json();
+			console.log("data: ", data);
 			setAlerts(data);
 		} catch (error) {
 			console.error("Failed to fetch alerts:", error);
@@ -184,7 +181,6 @@ const PriceAlerts: React.FC<AlertsProps> = ({ onViewDetails }) => {
 						<AlertStockCard
 							key={alert.id}
 							alert={alert}
-							onViewDetails={onViewDetails}
 							onRemoveAlert={removeAlert}
 							isLoading={removingAlert[alert.id]}
 						/>

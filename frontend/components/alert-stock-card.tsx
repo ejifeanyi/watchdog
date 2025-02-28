@@ -54,15 +54,6 @@ const AlertStockCard: React.FC<AlertStockCardProps> = ({
 		}
 	};
 
-	// Determine if change is positive, negative, or neutral
-	const getChangeClass = () => {
-		if (!alert.change || alert.change === 0)
-			return "bg-gray-500/10 text-gray-500";
-		return alert.change > 0
-			? "bg-green-500/10 text-green-500"
-			: "bg-red-500/10 text-red-500";
-	};
-
 	// Determine if current price is close to target (within 5%)
 	const isCloseToTarget = () => {
 		if (!alert.price || !alert.targetPrice) return false;
@@ -118,26 +109,11 @@ const AlertStockCard: React.FC<AlertStockCardProps> = ({
 						<CardTitle className="font-bold text-base">
 							{alert.symbol}
 						</CardTitle>
-						{alert.name && (
-							<p className="text-xs text-muted-foreground truncate max-w-[150px]">
-								{alert.name}
-							</p>
-						)}
 					</div>
 				</div>
-
-				<span
-					className={`text-sm px-2 py-0.5 rounded-full ${getChangeClass()}`}
-				>
-					{alert.changePercent || "—"}
-				</span>
 			</CardHeader>
 
 			<CardContent className="pb-2">
-				<div className="text-2xl font-semibold mb-1 text-left">
-					{alert.price ? `$${alert.price.toFixed(2)}` : "—"}
-				</div>
-
 				<div className="flex items-center my-1 bg-muted/30 p-2 rounded-md">
 					<div className="text-xs mr-1">
 						Alert when price {getTargetConditionText()}:
