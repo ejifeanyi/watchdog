@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useStocks } from "@/context/stocks-context";
 import TrendingStocks from "./trending-stocks";
 import Watchlist from "./watchlist";
+import PriceAlerts from "./price-alerts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Bell, LineChart, TrendingUp } from "lucide-react";
 
@@ -12,12 +13,6 @@ const StockDashboard: React.FC = () => {
 	const [activeView, setActiveView] = useState<
 		"trending" | "watchlist" | "alerts"
 	>("trending");
-
-	// Handle view details for stocks
-	const handleViewDetails = (symbol: string) => {
-		console.log(`View details for ${symbol}`);
-		// Implement detailed view functionality as needed
-	};
 
 	// Listen for click on watchlist button in navbar
 	useEffect(() => {
@@ -81,7 +76,11 @@ const StockDashboard: React.FC = () => {
 				</TabsContent>
 
 				<TabsContent value="watchlist" className="mt-0">
-					<Watchlist onViewDetails={handleViewDetails} />
+					<Watchlist />
+				</TabsContent>
+
+				<TabsContent value="alerts" className="mt-0">
+					<PriceAlerts />
 				</TabsContent>
 			</Tabs>
 		</div>
