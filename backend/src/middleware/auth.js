@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 
-export const authenticate = () => {
+export const authenticate = (req, res, next) => {
 	try {
 		const token = req.headers.authorization?.split(" ")[1];
 
@@ -8,7 +8,7 @@ export const authenticate = () => {
 			return res.status(401).json({ error: "Authentication required" });
 		}
 
-		const decoded = jwt.verify(token, "secret");
+		const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
 
 		// Add user info to request object
 		req.user = { userId: decoded.userId };
