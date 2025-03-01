@@ -1,10 +1,11 @@
 {
-	"name": "backend",
+	"name": "watchdog",
 	"version": "1.0.0",
-	"description": "REST API generated with rest-api-generator",
+	"description": "Watchdog is a fintech application that helps you watch and manage stocks. It provides real-time stock prices, news, and other information.",
 	"main": "src/index.ts",
 	"scripts": {
-		"start": "tsx src/index.ts",
+		"build": "tsc",
+		"start": "node dist/index.js",
 		"dev": "nodemon --exec tsx src/index.ts"
 	},
 	"dependencies": {
