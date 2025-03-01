@@ -23,7 +23,6 @@ const getPreviousTradingDay = () => {
 };
 
 // ✅ Route: Get Trending Stocks (Cached in Redis)
-// ✅ Route: Get Trending Stocks (Cached in Redis)
 router.get("/trending", async (req, res) => {
 	try {
 		// Try to get cached trending stocks
