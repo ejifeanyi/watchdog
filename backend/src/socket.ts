@@ -1,78 +1,71 @@
 import { Server } from "socket.io";
-import axios from "axios";
 import { PrismaClient } from "@prisma/client";
 import redis from "./redis";
 import { Server as HttpServer } from "http";
+import polygonService from "./services/polygonService";
 
 const prisma = new PrismaClient();
-const API_KEY = process.env.POLYGON_API_KEY || "";
-const POLLING_INTERVAL = 12000; // 12 seconds
-
-// Track connected clients for debugging
+const POLLING_INTERVAL = 30000; // Increased to 30 seconds
 const connectedClients = new Set<string>();
+
+// Track which symbols we're monitoring to batch API calls
+const monitoredSymbols = new Set<string>();
 
 function initWebSockets(server: HttpServer): Server {
 	console.log("🔌 Initializing WebSockets...");
 
 	try {
-		// Create Socket.IO server instance
 		const io = new Server(server, {
 			cors: {
-				origin: "*", // Allow all origins (adjust for production)
+				origin: "*",
 				methods: ["GET", "POST"],
 			},
-			transports: ["websocket", "polling"], // Use both WebSocket and polling
+			transports: ["websocket", "polling"],
 		});
 
 		console.log("🟢 Socket.IO server instance created successfully.");
 
-		// Handle new connections
 		io.on("connection", (socket) => {
 			connectedClients.add(socket.id);
 			console.log(`✅ Socket connected: ${socket.id}`);
-			console.log(`Active connections: ${connectedClients.size}`);
 
-			// Send initial connection confirmation
 			socket.emit("connectionConfirmed", { socketId: socket.id });
 
-			// Handle subscription to price alerts
 			socket.on("subscribeAlerts", (userId: string) => {
 				const roomName = `user-${userId}`;
 				socket.join(roomName);
-				console.log(
-					`User ${userId} subscribed to price alerts. Room: ${roomName}`
-				);
+				console.log(`User ${userId} subscribed to alerts. Room: ${roomName}`);
 				socket.emit("subscriptionConfirmed", { userId, status: "subscribed" });
 			});
 
-			// Handle disconnections
 			socket.on("disconnect", (reason) => {
 				connectedClients.delete(socket.id);
 				console.log(`❌ Socket ${socket.id} disconnected due to ${reason}`);
-				console.log(`Remaining connections: ${connectedClients.size}`);
 			});
 		});
 
-		// Start polling for stock prices
+		// ✨ Optimized price polling with batch updates
 		console.log("⏱️ Setting up price polling interval");
+
+		// Update monitored symbols list every 5 minutes
+		setInterval(updateMonitoredSymbols, 300000);
+
+		// Start polling for prices (but with batched updates)
 		const pollingInterval = setInterval(
-			() => fetchStockPrices(io),
+			() => fetchBatchedStockPrices(io),
 			POLLING_INTERVAL
 		);
+
+		// Initial symbol load
+		updateMonitoredSymbols();
+
 		console.log(
 			`⏱️ Price polling set for every ${POLLING_INTERVAL / 1000} seconds`
 		);
 
-		// Cleanup function for proper shutdown
-		const cleanup = () => {
-			clearInterval(pollingInterval);
-			io.close();
-		};
+		process.on("SIGINT", () => clearInterval(pollingInterval));
+		process.on("SIGTERM", () => clearInterval(pollingInterval));
 
-		process.on("SIGINT", cleanup);
-		process.on("SIGTERM", cleanup);
-
-		console.log("🟢 WebSocket initialization completed successfully.");
 		return io;
 	} catch (error) {
 		console.error("Failed to initialize WebSockets:", error);
@@ -80,13 +73,91 @@ function initWebSockets(server: HttpServer): Server {
 	}
 }
 
-async function getUserWatchlist(): Promise<string[]> {
+// Updates the list of symbols we need to monitor
+async function updateMonitoredSymbols() {
 	try {
-		const watchlist = await prisma.watchlist.findMany();
-		return watchlist.map((stock) => stock.symbol.toUpperCase());
+		// Get all unique stock symbols from both watchlists and alerts
+		const watchlistItems = await prisma.watchlist.findMany({
+			select: { symbol: true },
+			distinct: ["symbol"],
+		});
+
+		const alertItems = await prisma.alert.findMany({
+			where: { isTriggered: false },
+			select: { symbol: true },
+			distinct: ["symbol"],
+		});
+
+		// Clear the current set and add all symbols
+		monitoredSymbols.clear();
+
+		watchlistItems.forEach((item) =>
+			monitoredSymbols.add(item.symbol.toUpperCase())
+		);
+		alertItems.forEach((item) =>
+			monitoredSymbols.add(item.symbol.toUpperCase())
+		);
+
+		console.log(
+			`Updated monitored symbols: ${Array.from(monitoredSymbols).join(", ")}`
+		);
 	} catch (error) {
-		console.error("Error fetching watchlist:", error);
-		return [];
+		console.error("Error updating monitored symbols:", error);
+	}
+}
+
+// New batched approach to fetch prices
+async function fetchBatchedStockPrices(io: Server) {
+	if (monitoredSymbols.size === 0) {
+		console.log("No stocks to monitor, skipping price updates");
+		return;
+	}
+
+	console.log(`Fetching prices for ${monitoredSymbols.size} symbols`);
+
+	// Group symbols into batches of max 5 (Polygon's limits for multiple tickers)
+	const symbolsArray = Array.from(monitoredSymbols);
+	const batches: string[][] = [];
+
+	for (let i = 0; i < symbolsArray.length; i += 5) {
+		batches.push(symbolsArray.slice(i, i + 5));
+	}
+
+	console.log(`Split into ${batches.length} batches`);
+
+	// Process one batch per polling interval to stay within rate limits
+	// We'll cycle through batches on each interval
+	const batchKey = "current_symbol_batch";
+	const currentBatchIndex = parseInt((await redis.get(batchKey)) || "0");
+	const nextBatchIndex = (currentBatchIndex + 1) % batches.length;
+
+	// Store the next batch index for the next run
+	await redis.set(batchKey, nextBatchIndex.toString());
+
+	// Get the current batch to process
+	const currentBatch = batches[currentBatchIndex];
+
+	if (!currentBatch || currentBatch.length === 0) {
+		return;
+	}
+
+	console.log(
+		`Processing batch ${currentBatchIndex + 1}/${
+			batches.length
+		}: ${currentBatch.join(", ")}`
+	);
+
+	for (const symbol of currentBatch) {
+		try {
+			const price = await getStockPrice(symbol);
+
+			if (price !== null) {
+				io.emit("priceUpdate", { symbol, price });
+				await checkPriceAlerts(io, symbol, price);
+			}
+		} catch (error) {
+			console.error(`Error updating price for ${symbol}:`, error);
+		}
 	}
 }
 
@@ -99,66 +170,28 @@ async function getStockPrice(symbol: string): Promise<number | null> {
 			return parseFloat(cachedPrice);
 		}
 
-		const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/prev?apiKey=${API_KEY}`;
-		console.log(`Fetching from: ${url}`);
+		console.log(`🟡 Cache miss for ${symbol}, fetching from API`);
 
-		const response = await axios.get(url, {
-			timeout: 5000, // Add timeout to prevent hanging requests
-			headers: {
-				"User-Agent": "watchdog/1.0",
-			},
-		});
+		const response = await polygonService.getPreviousDayData(symbol);
 
-		if (!response.data?.results?.length) {
+		if (!response?.results?.length) {
 			console.warn(`No price data found for ${symbol}`);
 			return null;
 		}
 
-		const price = response.data.results[0].c || null; // Closing price
+		const price = response.results[0].c || null;
 
-		if (price) {
-			await redis.set(`stock:${symbol}`, price.toString(), "EX", 60); // Cache for 60 seconds
-			console.log(
-				`🟢 Cache Miss: Fetched ${symbol} = $${price} & stored in Redis`
-			);
+		if (price !== null) {
+			// Cache price for 1 hour instead of 60 seconds
+			await redis.set(`stock:${symbol}`, price.toString(), "EX", 3600);
+			console.log(`🟢 Fetched ${symbol} = $${price} & stored in Redis`);
 		}
 
 		return price;
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
 		console.error(`Error fetching ${symbol} price:`, errorMessage);
-		if (axios.isAxiosError(error)) {
-			console.error(
-				`Status: ${error.response?.status}, Data:`,
-				error.response?.data
-			);
-		}
 		return null;
-	}
-}
-
-async function fetchStockPrices(io: Server) {
-	try {
-		const symbols = await getUserWatchlist();
-		if (symbols.length === 0) {
-			console.log("No stocks in watchlist, skipping price fetching");
-			return;
-		}
-
-		console.log(`Fetching prices for: ${symbols.join(", ")}`);
-
-		for (const symbol of symbols) {
-			const price = await getStockPrice(symbol);
-			if (price !== null) {
-				console.log(`Broadcasting price update for ${symbol}: $${price}`);
-				io.emit("priceUpdate", { symbol, price });
-				await checkPriceAlerts(io, symbol, price);
-			} else {
-				console.warn(`No price available for ${symbol}, skipping update`);
-			}
-		}
-	} catch (error) {
-		console.error("Error in fetchStockPrices:", error);
 	}
 }
 
@@ -172,26 +205,21 @@ async function checkPriceAlerts(
 			where: { symbol, isTriggered: false },
 		});
 
-		console.log(`Checking ${alerts.length} alerts for ${symbol}`);
-
 		for (const alert of alerts) {
 			if (currentPrice >= alert.targetPrice) {
 				console.log(`🚨 Alert Triggered: ${symbol} hit $${alert.targetPrice}!`);
 
-				// Get active socket connections for this user
 				const userRoom = `user-${alert.userId}`;
 				const roomSize = io.sockets.adapter.rooms.get(userRoom)?.size || 0;
 
-				console.log(
-					`Emitting alert to user ${alert.userId} (${roomSize} active connections)`
-				);
-
-				io.to(userRoom).emit("alert", {
-					symbol,
-					price: currentPrice,
-					message: `🔔 ${symbol} has hit $${alert.targetPrice}!`,
-					alertId: alert.id,
-				});
+				if (roomSize > 0) {
+					io.to(userRoom).emit("alert", {
+						symbol,
+						price: currentPrice,
+						message: `🔔 ${symbol} has hit $${alert.targetPrice}!`,
+						alertId: alert.id,
+					});
+				}
 
 				await prisma.alert.update({
 					where: { id: alert.id },

@@ -11,6 +11,7 @@ import stocksRoutes from "./routes/stocks";
 import aiRoutes from "./routes/ai";
 import { PrismaClient } from "@prisma/client";
 import newsRoutes from "./routes/news";
+import "./services/polygonService";
 
 dotenv.config();
 

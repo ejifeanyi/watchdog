@@ -1,11 +1,10 @@
 import { Router, Request, Response } from "express";
-import axios from "axios";
+import polygonService from "../services/polygonService";
 import redis from "../redis";
 
 const router = Router();
-const API_KEY = process.env.POLYGON_API_KEY || "";
 const TRENDING_STOCKS_KEY = "trendingStocks";
-const TRENDING_UPDATE_INTERVAL = 60;
+const TRENDING_UPDATE_INTERVAL = 3600; // Increase cache time to 1 hour
 
 // Get previous trading day (simple approximation)
 const getPreviousTradingDay = () => {
@@ -36,22 +35,20 @@ router.get("/trending", async (req: Request, res: Response) => {
 		console.log("🟡 Fetching trending stocks from Polygon API");
 		// Use getPreviousTradingDay() to get the last completed trading day
 		const date = getPreviousTradingDay();
-		const url = `https://api.polygon.io/v2/aggs/grouped/locale/us/market/stocks/${date}?apiKey=${API_KEY}`;
 
-		console.log(`📡 API Request: ${url.replace(API_KEY, "API_KEY_HIDDEN")}`);
+		// Use our rate-limited service instead of direct axios call
+		const response = await polygonService.getGroupedDailyData(date);
 
-		const response = await axios.get(url);
-
-		if (!response.data || !response.data.results) {
+		if (!response || !response.results) {
 			console.error(
 				"⚠️ Unexpected API response structure:",
-				JSON.stringify(response.data).substring(0, 500) + "..."
+				JSON.stringify(response).substring(0, 500) + "..."
 			);
 			res.status(500).json({ error: "Invalid API response" });
 			return;
 		}
 
-		const stocks = response.data.results || [];
+		const stocks = response.results || [];
 		console.log(`📊 Received ${stocks.length} stocks from Polygon API`);
 
 		const trending = stocks
@@ -67,9 +64,6 @@ router.get("/trending", async (req: Request, res: Response) => {
 
 		console.log(`✨ Filtered to ${trending.length} trending stocks`);
 
-		console.log("📝 Sample raw stocks:", stocks.slice(0, 3));
-		console.log("📝 Sample trending stocks:", trending.slice(0, 3));
-
 		const slicedTrending = trending.slice(0, 20);
 
 		await redis.set(
@@ -83,16 +77,6 @@ router.get("/trending", async (req: Request, res: Response) => {
 		res.json(slicedTrending);
 	} catch (error) {
 		console.error("❌ Error fetching trending stocks:", error);
-
-		if (axios.isAxiosError(error)) {
-			console.error("🔴 Axios error details:", {
-				status: error.response?.status,
-				statusText: error.response?.statusText,
-				data: error.response?.data,
-				message: error.message,
-			});
-		}
-
 		res.status(500).json({ error: "Failed to fetch trending stocks" });
 	}
 });
@@ -103,112 +87,105 @@ router.get("/search", async (req: Request, res: Response) => {
 		const { query } = req.query;
 		if (!query || typeof query !== "string") {
 			res.status(400).json({ error: "Search query is required" });
-			return; // Early return is fine, but don't return the response object
+			return;
 		}
 
 		console.log(`🔎 Searching for stocks with query: "${query}"`);
 
+		// Check cache for search results first
+		const searchCacheKey = `search:${query.toLowerCase()}`;
+		const cachedSearchResults = await redis.get(searchCacheKey);
+
+		if (cachedSearchResults) {
+			console.log(`🔵 Cache hit for search: "${query}"`);
+			res.json(JSON.parse(cachedSearchResults));
+			return;
+		}
+
 		// 1️⃣ Fetch Matching Stocks (Name & Symbol)
-		const url = `https://api.polygon.io/v3/reference/tickers?search=${encodeURIComponent(
-			query
-		)}&active=true&apiKey=${API_KEY}`;
-		const response = await axios.get(url);
-		const stocks = response.data.results || [];
+		const response = await polygonService.searchTickers(query);
+		const stocks = response.results || [];
 
 		if (stocks.length === 0) {
-			res.json([]); // No return here
+			await redis.set(searchCacheKey, JSON.stringify([]), "EX", 3600); // Cache empty results too
+			res.json([]);
 			return;
 		}
 
 		console.log(`📊 Found ${stocks.length} matching stocks`);
 
-		// 2️⃣ Fetch Stock Prices (Check Redis First)
-		const priceRequests = stocks.slice(0, 5).map(async (stock: any) => {
-			const cacheKey = `stock:${stock.ticker}`;
-			const cachedPrice = await redis.get(cacheKey);
+		// 2️⃣ Batch fetch stock prices where possible
+		const stocksToProcess = stocks.slice(0, 5); // Limit to 5 stocks
 
-			if (cachedPrice) {
-				console.log(`🔵 Cache Hit: ${stock.ticker} = $${cachedPrice}`);
-				return {
-					symbol: stock.ticker,
-					name: stock.name,
-					price: parseFloat(cachedPrice),
-					change: null,
-					changePercent: null,
-					volume: null,
-				};
-			}
+		// Use Promise.all for concurrent processing, but each API call is rate-limited
+		const enhancedStocks = await Promise.all(
+			stocksToProcess.map(async (stock: any) => {
+				const cacheKey = `stock:${stock.ticker}`;
+				const cachedPrice = await redis.get(cacheKey);
 
-			try {
-				const priceUrl = `https://api.polygon.io/v2/aggs/ticker/${stock.ticker}/prev?apiKey=${API_KEY}`;
-				const priceResponse = await axios.get(priceUrl);
-				const priceData = priceResponse.data.results?.[0];
-
-				const stockPrice = priceData?.c || null;
-
-				// ✅ Cache stock price in Redis (expires in 60 sec)
-				if (stockPrice !== null) {
-					await redis.set(cacheKey, stockPrice.toString(), "EX", 60);
-				}
-
-				return {
-					symbol: stock.ticker,
-					name: stock.name,
-					price: stockPrice,
-					change: priceData ? priceData.c - priceData.o : null,
-					changePercent: priceData
-						? (((priceData.c - priceData.o) / priceData.o) * 100).toFixed(2) +
-						  "%"
-						: null,
-					volume: priceData?.v || null,
-				};
-			} catch (error: any) {
-				if (error.response?.status === 429) {
-					console.error(
-						`❌ Rate limit hit for ${stock.ticker}: Returning cached price if available.`
-					);
-					const cachedFallback = await redis.get(cacheKey);
+				if (cachedPrice) {
+					console.log(`🔵 Cache Hit: ${stock.ticker} = $${cachedPrice}`);
 					return {
 						symbol: stock.ticker,
 						name: stock.name,
-						price: cachedFallback ? parseFloat(cachedFallback) : null,
+						price: parseFloat(cachedPrice),
 						change: null,
 						changePercent: null,
 						volume: null,
 					};
 				}
-				console.error(
-					`❌ Error fetching price for ${stock.ticker}:`,
-					error.message
-				);
-				return {
-					symbol: stock.ticker,
-					name: stock.name,
-					price: null,
-					change: null,
-					changePercent: null,
-					volume: null,
-				};
-			}
-		});
 
-		const enhancedStocks = await Promise.all(priceRequests);
+				try {
+					// Use the rate-limited version to fetch price
+					const priceResponse = await polygonService.getPreviousDayData(
+						stock.ticker
+					);
+					const priceData = priceResponse?.results?.[0];
+
+					const stockPrice = priceData?.c || null;
+
+					// ✅ Cache stock price in Redis (expires in 60 minutes instead of 60 seconds)
+					if (stockPrice !== null) {
+						await redis.set(cacheKey, stockPrice.toString(), "EX", 3600);
+					}
+
+					return {
+						symbol: stock.ticker,
+						name: stock.name,
+						price: stockPrice,
+						change: priceData ? priceData.c - priceData.o : null,
+						changePercent: priceData
+							? (((priceData.c - priceData.o) / priceData.o) * 100).toFixed(2) +
+							  "%"
+							: null,
+						volume: priceData?.v || null,
+					};
+				} catch (error: any) {
+					console.error(
+						`❌ Error fetching price for ${stock.ticker}:`,
+						error.message
+					);
+					return {
+						symbol: stock.ticker,
+						name: stock.name,
+						price: null,
+						change: null,
+						changePercent: null,
+						volume: null,
+					};
+				}
+			})
+		);
+
+		// Cache the search results
+		await redis.set(searchCacheKey, JSON.stringify(enhancedStocks), "EX", 1800); // 30 minutes
 
 		console.log("✅ Enhanced stocks with prices:", enhancedStocks);
-		res.json(enhancedStocks); // No return here
+		res.json(enhancedStocks);
 	} catch (error) {
 		console.error("❌ Error searching stocks:", error);
-
-		if (axios.isAxiosError(error)) {
-			console.error("🔴 Axios error details:", {
-				status: error.response?.status,
-				statusText: error.response?.statusText,
-				data: error.response?.data,
-				message: error.message,
-			});
-		}
-
-		res.status(500).json({ error: "Failed to search stocks" }); // No return here
+		res.status(500).json({ error: "Failed to search stocks" });
 	}
 });
+
 export default router;

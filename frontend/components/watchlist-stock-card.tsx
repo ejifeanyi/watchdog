@@ -121,7 +121,7 @@ const WishlistStockCard: React.FC<WishlistStockCardProps> = ({
 				</div>
 				<div className="flex items-center my-3">
 					<p className="text-xs text-muted-foreground text-left mr-3">
-						{stock.change !== undefined
+						{stock.change != null
 							? `${stock.change > 0 ? "+" : ""}$${stock.change.toFixed(
 									2
 							  )} today`
