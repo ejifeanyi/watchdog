@@ -41,7 +41,7 @@ export default function Navbar() {
 	};
 
 	// Handle navigation
-	type DashboardView = 'trending' | 'watchlist' | 'alerts';
+	type DashboardView = "trending" | "watchlist" | "alerts";
 
 	const handleNavigate = (view: DashboardView): void => {
 		navigateToDashboardView(view);
@@ -88,39 +88,43 @@ export default function Navbar() {
 
 					{/* Desktop menu */}
 					<div className="hidden md:flex items-center space-x-1 lg:space-x-2">
-						<Button
-							variant="ghost"
-							data-trending-button="true"
-							onClick={() => handleNavigate("trending")} // Add this onClick handler
-							className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary"
-						>
-							<TrendingUp className="w-4 h-4" />
-							<span>Trending</span>
-						</Button>
+						{isAuthenticated ? (
+							<>
+								<Button
+									variant="ghost"
+									data-trending-button="true"
+									onClick={() => handleNavigate("trending")}
+									className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary"
+								>
+									<TrendingUp className="w-4 h-4" />
+									<span>Trending</span>
+								</Button>
 
-						<Button
-							variant="ghost"
-							data-watchlist-button="true"
-							onClick={() => handleNavigate("watchlist")} // Add this onClick handler
-							className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary"
-						>
-							<Eye className="w-4 h-4" />
-							<span>Watchlist</span>
-						</Button>
+								<Button
+									variant="ghost"
+									data-watchlist-button="true"
+									onClick={() => handleNavigate("watchlist")}
+									className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary"
+								>
+									<Eye className="w-4 h-4" />
+									<span>Watchlist</span>
+								</Button>
 
-						<Button
-							variant="ghost"
-							data-alerts-button="true"
-							onClick={() => handleNavigate("alerts")} // Add this onClick handler
-							className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary relative"
-						>
-							<Bell className="w-4 h-4" />
-							<span>Alerts</span>
-						</Button>
+								<Button
+									variant="ghost"
+									data-alerts-button="true"
+									onClick={() => handleNavigate("alerts")}
+									className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary relative"
+								>
+									<Bell className="w-4 h-4" />
+									<span>Alerts</span>
+								</Button>
 
-						<RecommendButton className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary relative" />
+								<RecommendButton className="flex items-center gap-2 rounded-lg text-sm font-medium hover:bg-primary/10 hover:text-primary relative" />
 
-						<div className="h-6 w-px bg-border mx-1"></div>
+								<div className="h-6 w-px bg-border mx-1"></div>
+							</>
+						) : null}
 
 						<ThemeToggle />
 
@@ -171,37 +175,41 @@ export default function Navbar() {
 						)}
 
 						<div className="flex flex-col space-y-2">
-							<Button
-								variant="ghost"
-								data-trending-button="true"
-								onClick={() => handleNavigate("trending")} // Add this onClick handler
-								className="flex items-center justify-start gap-2 w-full text-sm font-medium"
-							>
-								<TrendingUp className="w-4 h-4" />
-								<span>Trending</span>
-							</Button>
+							{isAuthenticated ? (
+								<>
+									<Button
+										variant="ghost"
+										data-trending-button="true"
+										onClick={() => handleNavigate("trending")}
+										className="flex items-center justify-start gap-2 w-full text-sm font-medium"
+									>
+										<TrendingUp className="w-4 h-4" />
+										<span>Trending</span>
+									</Button>
 
-							<Button
-								variant="ghost"
-								data-watchlist-button="true"
-								onClick={() => handleNavigate("watchlist")} // Add this onClick handler
-								className="flex items-center justify-start gap-2 w-full text-sm font-medium"
-							>
-								<Eye className="w-4 h-4" />
-								<span>Watchlist</span>
-							</Button>
+									<Button
+										variant="ghost"
+										data-watchlist-button="true"
+										onClick={() => handleNavigate("watchlist")}
+										className="flex items-center justify-start gap-2 w-full text-sm font-medium"
+									>
+										<Eye className="w-4 h-4" />
+										<span>Watchlist</span>
+									</Button>
 
-							<Button
-								variant="ghost"
-								data-alerts-button="true"
-								onClick={() => handleNavigate("alerts")} // Add this onClick handler
-								className="flex items-center justify-start gap-2 w-full text-sm font-medium relative"
-							>
-								<Bell className="w-4 h-4" />
-								<span>Alerts</span>
-							</Button>
+									<Button
+										variant="ghost"
+										data-alerts-button="true"
+										onClick={() => handleNavigate("alerts")}
+										className="flex items-center justify-start gap-2 w-full text-sm font-medium relative"
+									>
+										<Bell className="w-4 h-4" />
+										<span>Alerts</span>
+									</Button>
 
-							<RecommendButton className="flex items-center justify-start gap-2 w-full text-sm font-medium relative" />
+									<RecommendButton className="flex items-center justify-start gap-2 w-full text-sm font-medium relative" />
+								</>
+							) : null}
 
 							<div className="flex items-center justify-between py-2">
 								<span className="text-sm text-muted-foreground">Theme</span>
