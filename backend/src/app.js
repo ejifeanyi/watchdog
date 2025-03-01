@@ -34,12 +34,12 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/news", newsRoutes);
 
 // Health Check
-app.get("/", (res) => {
+app.get("/", (req, res) => {
 	res.json({ message: "Welcome to the Fintech API!" });
 });
 
 // Error Handling Middleware
-app.use((err, res) => {
+app.use((err, req, res, next) => {
 	console.error(err.stack);
 	res.status(500).json({ error: "Something went wrong!" });
 });
