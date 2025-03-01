@@ -52,10 +52,8 @@ router.get("/summarize", async (req, res) => {
             Focus on key takeaways, stock impact, and investor relevance.
         `;
 
-		const aiResponse =
-			(await axios.post) <
-			MistralResponse >
-			("https://api.mistral.ai/v1/chat/completions",
+		const aiResponse = await axios.post(
+			"https://api.mistral.ai/v1/chat/completions",
 			{
 				model: "mistral-tiny",
 				messages: [{ role: "user", content: aiPrompt }],
@@ -67,14 +65,15 @@ router.get("/summarize", async (req, res) => {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${MISTRAL_API_KEY}`,
 				},
-			});
+			}
+		);
 
 		const summarizedNews =
 			aiResponse.data.choices[0].message?.content || "No summary available.";
 
 		// ✅ Store in Redis (cache for 2 hours)
 		const responsePayload = { ticker, summarizedNews, latestArticles };
-		await redis.set(cacheKey, JSON.stringify(responsePayload), "EX", 7200);
+		await redis.set(cacheKey, JSON.stringify(responsePayload), { ex: 7200 });
 
 		return res.json(responsePayload);
 	} catch (error) {

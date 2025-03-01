@@ -35,10 +35,8 @@ router.post("/recommend", async (req, res) => {
         `;
 
 		// Call Mistral AI REST API
-		const response =
-			(await axios.post) <
-			MistralResponse >
-			("https://api.mistral.ai/v1/chat/completions",
+		const response = await axios.post(
+			"https://api.mistral.ai/v1/chat/completions",
 			{
 				model: "mistral-tiny",
 				messages: [{ role: "user", content: prompt }],
@@ -50,7 +48,8 @@ router.post("/recommend", async (req, res) => {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${process.env.MISTRAL_API_KEY}`,
 				},
-			});
+			}
+		);
 
 		const aiResponse =
 			response.data.choices[0].message?.content ||
@@ -62,7 +61,7 @@ router.post("/recommend", async (req, res) => {
 		};
 
 		// Store recommendations in Redis (cache for 24 hours)
-		await redis.set(cacheKey, JSON.stringify(recommendations), "EX", 86400);
+		await redis.set(cacheKey, JSON.stringify(recommendations), { ex: 86400 });
 
 		return res.json(recommendations);
 	} catch (error) {

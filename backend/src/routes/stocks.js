@@ -69,7 +69,7 @@ router.get("/trending", async (req, res) => {
 		await redis.set(
 			TRENDING_STOCKS_KEY,
 			JSON.stringify(slicedTrending),
-			"EX",
+			"ex",
 			TRENDING_UPDATE_INTERVAL
 		);
 		console.log("🟢 Cached trending stocks in Redis");
@@ -83,109 +83,176 @@ router.get("/trending", async (req, res) => {
 
 // ✅ Search for Stocks with Cached Prices
 router.get("/search", async (req, res) => {
-	try {
-		const { query } = req.query;
-		if (!query || typeof query !== "string") {
-			res.status(400).json({ error: "Search query is required" });
-			return;
-		}
+  try {
+    const { query } = req.query;
+    if (!query || typeof query !== "string") {
+      res.status(400).json({ error: "Search query is required" });
+      return;
+    }
 
-		console.log(`🔎 Searching for stocks with query: "${query}"`);
+    console.log(`🔎 Searching for stocks with query: "${query}"`);
 
-		// Check cache for search results first
-		const searchCacheKey = `search:${query.toLowerCase()}`;
-		const cachedSearchResults = await redis.get(searchCacheKey);
+    // Check cache for search results first
+    const searchCacheKey = `search:${query.toLowerCase()}`;
+    const cachedSearchResults = await redis.get(searchCacheKey);
 
-		if (cachedSearchResults) {
-			console.log(`🔵 Cache hit for search: "${query}"`);
-			res.json(JSON.parse(cachedSearchResults));
-			return;
-		}
+    if (cachedSearchResults) {
+      try {
+        console.log(`🔵 Cache hit for search: "${query}"`);
+        res.json(JSON.parse(cachedSearchResults));
+        return;
+      } catch (parseError) {
+        console.error(`Error parsing cached search results: ${parseError.message}`);
+        // Continue with fresh search if cache is corrupt
+      }
+    }
 
-		// 1️⃣ Fetch Matching Stocks (Name & Symbol)
-		const response = await polygonService.searchTickers(query);
-		const stocks = response.results || [];
+    // 1️⃣ Fetch Matching Stocks (Name & Symbol)
+    const response = await polygonService.searchTickers(query);
+    const stocks = response.results || [];
 
-		if (stocks.length === 0) {
-			await redis.set(searchCacheKey, JSON.stringify([]), "EX", 3600); // Cache empty results too
-			res.json([]);
-			return;
-		}
+    if (stocks.length === 0) {
+      await redis.set(searchCacheKey, JSON.stringify([]), "ex", 3600); // Cache empty results too
+      res.json([]);
+      return;
+    }
 
-		console.log(`📊 Found ${stocks.length} matching stocks`);
+    console.log(`📊 Found ${stocks.length} matching stocks`);
 
-		// 2️⃣ Batch fetch stock prices where possible
-		const stocksToProcess = stocks.slice(0, 5); // Limit to 5 stocks
+    // 2️⃣ Batch fetch stock prices where possible
+    const stocksToProcess = stocks.slice(0, 5); // Limit to 5 stocks
 
-		// Use Promise.all for concurrent processing, but each API call is rate-limited
-		const enhancedStocks = await Promise.all(
-			stocksToProcess.map(async (stock) => {
-				const cacheKey = `stock:${stock.ticker}`;
-				const cachedPrice = await redis.get(cacheKey);
+    // Use Promise.all for concurrent processing, but each API call is rate-limited
+    const enhancedStocks = await Promise.all(
+      stocksToProcess.map(async (stock) => {
+        const cacheKey = `stock:${stock.ticker}`;
+        
+        try {
+          const cachedPrice = await redis.get(cacheKey);
 
-				if (cachedPrice) {
-					console.log(`🔵 Cache Hit: ${stock.ticker} = $${cachedPrice}`);
-					return {
-						symbol: stock.ticker,
-						name: stock.name,
-						price: parseFloat(cachedPrice),
-						change: null,
-						changePercent: null,
-						volume: null,
-					};
-				}
+          if (cachedPrice) {
+            // Handle possible "[object Object]" string in cache
+            if (cachedPrice === "[object Object]") {
+              console.error(`❌ Corrupted cache for ${stock.ticker}, fetching fresh data`);
+              // Clear corrupted cache
+              await redis.del(cacheKey);
+              // Skip the cache logic and fall through to fetching fresh data
+            } else {
+              try {
+                // Try to parse as JSON
+                const parsedPrice = JSON.parse(cachedPrice);
+                // Extract price depending on data structure
+                let finalPrice;
+                
+                if (typeof parsedPrice === 'object' && parsedPrice !== null) {
+                  finalPrice = parsedPrice.c || parsedPrice.price || parsedPrice;
+                  if (typeof finalPrice === 'object') {
+                    // If still an object, something's wrong - log and fetch fresh data
+                    console.error(`❌ Complex object in cache for ${stock.ticker}:`, parsedPrice);
+                    // Clear corrupted cache
+                    await redis.del(cacheKey);
+                    // Skip to fetching fresh data
+                    throw new Error("Complex object structure in cache");
+                  }
+                } else {
+                  finalPrice = parsedPrice;
+                }
+                
+                console.log(`🔵 Cache Hit: ${stock.ticker} = $${finalPrice}`);
+                return {
+                  symbol: stock.ticker,
+                  name: stock.name,
+                  price: typeof finalPrice === 'number' ? finalPrice : parseFloat(finalPrice),
+                  change: null,
+                  changePercent: null,
+                  volume: null,
+                };
+              } catch (e) {
+                // Not valid JSON, treat as a plain number string if possible
+                if (!isNaN(parseFloat(cachedPrice))) {
+                  console.log(`🔵 Cache Hit: ${stock.ticker} = $${cachedPrice}`);
+                  return {
+                    symbol: stock.ticker,
+                    name: stock.name,
+                    price: parseFloat(cachedPrice),
+                    change: null,
+                    changePercent: null,
+                    volume: null,
+                  };
+                } else {
+                  // Not a number string either, clear corrupt cache and fetch fresh data
+                  console.error(`❌ Invalid cache data for ${stock.ticker}: ${cachedPrice}`);
+                  await redis.del(cacheKey);
+                  // Fall through to fetching fresh data
+                }
+              }
+            }
+          }
 
-				try {
-					// Use the rate-limited version to fetch price
-					const priceResponse = await polygonService.getPreviousDayData(
-						stock.ticker
-					);
-					const priceData = priceResponse?.results?.[0];
+          // Fetch fresh price data
+          const priceResponse = await polygonService.getPreviousDayData(
+            stock.ticker
+          );
+          const priceData = priceResponse?.results?.[0];
 
-					const stockPrice = priceData?.c || null;
+          // Safely extract price data
+          let stockPrice = null;
+          if (priceData && typeof priceData.c !== 'undefined') {
+            stockPrice = priceData.c;
+          }
 
-					// ✅ Cache stock price in Redis (expires in 60 minutes instead of 60 seconds)
-					if (stockPrice !== null) {
-						await redis.set(cacheKey, stockPrice.toString(), "EX", 3600);
-					}
+          // Cache price data properly
+          if (stockPrice !== null) {
+            // Ensure we're storing a numeric value as a string
+            if (typeof stockPrice === 'number') {
+              await redis.set(cacheKey, stockPrice.toString(), "ex", 3600);
+            } else if (typeof stockPrice === 'object') {
+              // Log this unusual case and store the entire object properly
+              console.warn(`Warning: stockPrice for ${stock.ticker} is an object:`, stockPrice);
+              await redis.set(cacheKey, JSON.stringify(stockPrice), "ex", 3600);
+            } else {
+              // String or other primitive
+              await redis.set(cacheKey, stockPrice.toString(), "ex", 3600);
+            }
+          }
 
-					return {
-						symbol: stock.ticker,
-						name: stock.name,
-						price: stockPrice,
-						change: priceData ? priceData.c - priceData.o : null,
-						changePercent: priceData
-							? (((priceData.c - priceData.o) / priceData.o) * 100).toFixed(2) +
-							  "%"
-							: null,
-						volume: priceData?.v || null,
-					};
-				} catch (error) {
-					console.error(
-						`❌ Error fetching price for ${stock.ticker}:`,
-						error.message
-					);
-					return {
-						symbol: stock.ticker,
-						name: stock.name,
-						price: null,
-						change: null,
-						changePercent: null,
-						volume: null,
-					};
-				}
-			})
-		);
+          return {
+            symbol: stock.ticker,
+            name: stock.name,
+            price: stockPrice,
+            change: priceData ? priceData.c - priceData.o : null,
+            changePercent: priceData
+              ? (((priceData.c - priceData.o) / priceData.o) * 100).toFixed(2) +
+                "%"
+              : null,
+            volume: priceData?.v || null,
+          };
+        } catch (error) {
+          console.error(
+            `❌ Error processing ${stock.ticker}:`,
+            error.message
+          );
+          return {
+            symbol: stock.ticker,
+            name: stock.name,
+            price: null,
+            change: null,
+            changePercent: null,
+            volume: null,
+          };
+        }
+      })
+    );
 
-		// Cache the search results
-		await redis.set(searchCacheKey, JSON.stringify(enhancedStocks), "EX", 1800); // 30 minutes
+    // Cache the search results
+    await redis.set(searchCacheKey, JSON.stringify(enhancedStocks), "ex", 1800); // 30 minutes
 
-		console.log("✅ Enhanced stocks with prices:", enhancedStocks);
-		res.json(enhancedStocks);
-	} catch (error) {
-		console.error("❌ Error searching stocks:", error);
-		res.status(500).json({ error: "Failed to search stocks" });
-	}
+    console.log("✅ Enhanced stocks with prices:", enhancedStocks);
+    res.json(enhancedStocks);
+  } catch (error) {
+    console.error("❌ Error searching stocks:", error);
+    res.status(500).json({ error: "Failed to search stocks" });
+  }
 });
 
 export default router;

@@ -21,8 +21,7 @@ class PolygonService {
 	async #initCounter() {
 		const exists = await redis.exists(COUNTER_KEY);
 		if (!exists) {
-			await redis.set(COUNTER_KEY, "0");
-			await redis.expire(COUNTER_KEY, COUNTER_RESET_SECONDS);
+			await redis.set(COUNTER_KEY, "0", { ex: COUNTER_RESET_SECONDS });
 		}
 	}
 
@@ -30,23 +29,31 @@ class PolygonService {
 		try {
 			const queueData = await redis.get(QUEUE_KEY);
 			if (queueData) {
-				this.requestQueue = JSON.parse(queueData);
-				console.log(
-					`📋 Loaded ${this.requestQueue.length} requests from Redis queue`
-				);
+				try {
+					this.requestQueue = JSON.parse(queueData);
+					console.log(
+						`📋 Loaded ${this.requestQueue.length} requests from Redis queue`
+					);
+				} catch (parseError) {
+					console.error("Error parsing queue data from Redis:", parseError);
+					// Initialize with empty queue rather than failing
+					this.requestQueue = [];
+					// Optionally, clear the corrupt data
+					await redis.del(QUEUE_KEY);
+					console.log("Cleared corrupted queue data from Redis");
+				}
 			}
 		} catch (error) {
 			console.error("Error loading queue from Redis:", error);
+			this.requestQueue = [];
 		}
 	}
-
 	async saveQueueToRedis() {
 		try {
 			await redis.set(
 				QUEUE_KEY,
 				JSON.stringify(this.requestQueue),
-				"EX",
-				3600 // Expire after 1 hour to prevent stale queues
+				{ ex: 3600 } // Expire after 1 hour to prevent stale queues
 			);
 		} catch (error) {
 			console.error("Error saving queue to Redis:", error);
@@ -153,12 +160,9 @@ class PolygonService {
 				const cacheTime = this.getCacheTimeForEndpoint(url);
 
 				if (cacheTime > 0 && response.data) {
-					await redis.set(
-						cacheKey,
-						JSON.stringify(response.data),
-						"EX",
-						cacheTime
-					);
+					await redis.set(cacheKey, JSON.stringify(response.data), {
+						ex: cacheTime,
+					});
 					console.log(`🟢 Cached response for ${url} (${cacheTime}s)`);
 				}
 

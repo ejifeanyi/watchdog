@@ -1,12 +1,11 @@
-import Redis from "ioredis";
+import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
-	host: process.env.REDIS_HOST || "127.0.0.1",
-	port: Number(process.env.REDIS_PORT) || 6379,
-	retryStrategy: (times) => Math.min(times * 50, 2000),
+	url: process.env.UPSTASH_REDIS_REST_URL,
+	token: process.env.UPSTASH_REDIS_REST_TOKEN,
 });
 
-redis.on("connect", () => console.log("🔗 Connected to Redis"));
-redis.on("error", (err) => console.error("❌ Redis Error:", err));
+// You can log connection success, but the REST client doesn't have events like ioredis
+console.log("🔗 Redis client initialized");
 
 export default redis;

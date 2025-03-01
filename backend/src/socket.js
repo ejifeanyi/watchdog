@@ -182,7 +182,7 @@ async function getStockPrice(symbol) {
 
 		if (price !== null) {
 			// Cache price for 1 hour instead of 60 seconds
-			await redis.set(`stock:${symbol}`, price.toString(), "EX", 3600);
+			await redis.set(`stock:${symbol}`, price.toString(), { ex: 3600 });
 			console.log(`🟢 Fetched ${symbol} = $${price} & stored in Redis`);
 		}
 
