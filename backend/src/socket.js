@@ -1,17 +1,16 @@
 import { Server } from "socket.io";
 import { PrismaClient } from "@prisma/client";
-import redis from "./redis";
-import { Server as HttpServer } from "http";
-import polygonService from "./services/polygonService";
+import redis from "./redis.js";
+import polygonService from "./services/polygonService.js";
 
 const prisma = new PrismaClient();
 const POLLING_INTERVAL = 30000; // Increased to 30 seconds
-const connectedClients = new Set<string>();
+const connectedClients = new Set();
 
 // Track which symbols we're monitoring to batch API calls
-const monitoredSymbols = new Set<string>();
+const monitoredSymbols = new Set();
 
-function initWebSockets(server: HttpServer): Server {
+function initWebSockets(server) {
 	console.log("🔌 Initializing WebSockets...");
 
 	try {
@@ -31,7 +30,7 @@ function initWebSockets(server: HttpServer): Server {
 
 			socket.emit("connectionConfirmed", { socketId: socket.id });
 
-			socket.on("subscribeAlerts", (userId: string) => {
+			socket.on("subscribeAlerts", (userId) => {
 				const roomName = `user-${userId}`;
 				socket.join(roomName);
 				console.log(`User ${userId} subscribed to alerts. Room: ${roomName}`);
@@ -107,7 +106,7 @@ async function updateMonitoredSymbols() {
 }
 
 // New batched approach to fetch prices
-async function fetchBatchedStockPrices(io: Server) {
+async function fetchBatchedStockPrices(io) {
 	if (monitoredSymbols.size === 0) {
 		console.log("No stocks to monitor, skipping price updates");
 		return;
@@ -117,7 +116,7 @@ async function fetchBatchedStockPrices(io: Server) {
 
 	// Group symbols into batches of max 5 (Polygon's limits for multiple tickers)
 	const symbolsArray = Array.from(monitoredSymbols);
-	const batches: string[][] = [];
+	const batches = [];
 
 	for (let i = 0; i < symbolsArray.length; i += 5) {
 		batches.push(symbolsArray.slice(i, i + 5));
@@ -161,7 +160,7 @@ async function fetchBatchedStockPrices(io: Server) {
 	}
 }
 
-async function getStockPrice(symbol: string): Promise<number | null> {
+async function getStockPrice(symbol) {
 	try {
 		const cachedPrice = await redis.get(`stock:${symbol}`);
 
@@ -195,11 +194,7 @@ async function getStockPrice(symbol: string): Promise<number | null> {
 	}
 }
 
-async function checkPriceAlerts(
-	io: Server,
-	symbol: string,
-	currentPrice: number
-) {
+async function checkPriceAlerts(io, symbol, currentPrice) {
 	try {
 		const alerts = await prisma.alert.findMany({
 			where: { symbol, isTriggered: false },

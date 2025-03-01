@@ -2,19 +2,20 @@
 	"name": "watchdog",
 	"version": "1.0.0",
 	"description": "Watchdog is a fintech application that helps you watch and manage stocks. It provides real-time stock prices, news, and other information.",
-	"main": "src/index.ts",
+	"main": "src/index.js",
 	"scripts": {
-		"build": "tsc",
-		"start": "node dist/index.js",
-		"dev": "nodemon --exec tsx src/index.ts"
+		"start": "node src/index.js",
+		"build": "echo 'No build step required for pure JavaScript'",
+		"dev": "nodemon src/index.js",
+		"prisma:generate": "prisma generate",
+		"prisma:migrate": "prisma migrate deploy"
 	},
 	"dependencies": {
 		"@prisma/client": "^6.4.1",
-		"@types/ioredis": "^4.28.10",
-		"axios": "^1.7.9",
+		"axios": "^1.8.1",
 		"bcryptjs": "^2.4.3",
 		"cors": "^2.8.5",
-		"dotenv": "^16.0.0",
+		"dotenv": "^16.4.7",
 		"express": "^4.21.2",
 		"helmet": "^5.1.1",
 		"ioredis": "^5.5.0",
@@ -26,20 +27,12 @@
 		"socket.io-client": "^4.8.1"
 	},
 	"devDependencies": {
-		"@types/bcryptjs": "^2.4.6",
-		"@types/cors": "^2.8.17",
-		"@types/express": "^5.0.0",
-		"@types/jsonwebtoken": "^9.0.9",
-		"@types/morgan": "^1.9.9",
-		"@types/node": "^22.13.5",
 		"jest": "^27.5.1",
 		"nodemon": "^2.0.15",
-		"prisma": "^6.4.1",
-		"tsx": "^4.19.3",
-		"typescript": "^5.7.3"
+		"prisma": "^6.4.1"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
-	"type": "commonjs"
+	"type": "module"
 }

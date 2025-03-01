@@ -1,15 +1,6 @@
-import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-interface JwtPayload {
-	userId: string;
-}
-
-export const authenticate = (
-	req: Request,
-	res: Response,
-	next: NextFunction
-) => {
+export const authenticate = () => {
 	try {
 		const token = req.headers.authorization?.split(" ")[1];
 
@@ -17,10 +8,10 @@ export const authenticate = (
 			return res.status(401).json({ error: "Authentication required" });
 		}
 
-		const decoded = jwt.verify(token, "secret") as JwtPayload;
+		const decoded = jwt.verify(token, "secret");
 
 		// Add user info to request object
-		(req as any).user = { userId: decoded.userId };
+		req.user = { userId: decoded.userId };
 
 		next();
 	} catch (error) {

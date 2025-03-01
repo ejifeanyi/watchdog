@@ -1,10 +1,10 @@
-import { Router, Request, Response } from "express";
-import polygonService from "../services/polygonService";
-import redis from "../redis";
+import { Router } from "express";
+import polygonService from "../services/polygonService.js";
+import redis from "../redis.js";
 
 const router = Router();
 const TRENDING_STOCKS_KEY = "trendingStocks";
-const TRENDING_UPDATE_INTERVAL = 3600; // Increase cache time to 1 hour
+const TRENDING_UPDATE_INTERVAL = 3600; // Set cache time to 1 hour
 
 // Get previous trading day (simple approximation)
 const getPreviousTradingDay = () => {
@@ -23,7 +23,7 @@ const getPreviousTradingDay = () => {
 };
 
 // ✅ Route: Get Trending Stocks (Cached in Redis)
-router.get("/trending", async (req: Request, res: Response) => {
+router.get("/trending", async (req, res) => {
 	try {
 		const cachedStocks = await redis.get(TRENDING_STOCKS_KEY);
 		if (cachedStocks) {
@@ -52,15 +52,15 @@ router.get("/trending", async (req: Request, res: Response) => {
 		console.log(`📊 Received ${stocks.length} stocks from Polygon API`);
 
 		const trending = stocks
-			.filter((stock: any) => stock.c > 100)
-			.map((stock: any) => ({
+			.filter((stock) => stock.c > 100)
+			.map((stock) => ({
 				symbol: stock.T,
 				price: stock.c,
 				volume: stock.v,
 				change: stock.c - stock.o,
 				changePercent: (((stock.c - stock.o) / stock.o) * 100).toFixed(2) + "%",
 			}))
-			.sort((a: any, b: any) => b.volume - a.volume);
+			.sort((a, b) => b.volume - a.volume);
 
 		console.log(`✨ Filtered to ${trending.length} trending stocks`);
 
@@ -81,8 +81,8 @@ router.get("/trending", async (req: Request, res: Response) => {
 	}
 });
 
-// ✅ Route: Search for Stocks with Cached Prices
-router.get("/search", async (req: Request, res: Response) => {
+// ✅ Search for Stocks with Cached Prices
+router.get("/search", async (req, res) => {
 	try {
 		const { query } = req.query;
 		if (!query || typeof query !== "string") {
@@ -119,7 +119,7 @@ router.get("/search", async (req: Request, res: Response) => {
 
 		// Use Promise.all for concurrent processing, but each API call is rate-limited
 		const enhancedStocks = await Promise.all(
-			stocksToProcess.map(async (stock: any) => {
+			stocksToProcess.map(async (stock) => {
 				const cacheKey = `stock:${stock.ticker}`;
 				const cachedPrice = await redis.get(cacheKey);
 
@@ -160,7 +160,7 @@ router.get("/search", async (req: Request, res: Response) => {
 							: null,
 						volume: priceData?.v || null,
 					};
-				} catch (error: any) {
+				} catch (error) {
 					console.error(
 						`❌ Error fetching price for ${stock.ticker}:`,
 						error.message

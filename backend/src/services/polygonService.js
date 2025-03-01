@@ -1,6 +1,5 @@
-// src/services/polygonService.ts
-import axios, { AxiosRequestConfig } from "axios";
-import redis from "../redis";
+import axios from "axios";
+import redis from "../redis.js";
 
 const API_KEY = process.env.POLYGON_API_KEY || "";
 const MAX_REQUESTS_PER_MINUTE = 5;
@@ -9,24 +8,17 @@ const COUNTER_KEY = "polygon_api_counter";
 const COUNTER_RESET_SECONDS = 60; // 1 minute
 
 class PolygonService {
-	private requestQueue: Array<{
-		url: string;
-		config?: AxiosRequestConfig;
-		resolve: (value: any) => void;
-		reject: (reason: any) => void;
-		priority: number;
-	}> = [];
-	private isProcessingQueue = false;
-	private processingTimer: NodeJS.Timeout | null = null;
+	/** @type {Array<{url: string, config: any, resolve: Function, reject: Function, priority: number}>} */
+	requestQueue = [];
 
 	constructor() {
-		this.initCounter();
+		this.#initCounter();
 		this.loadQueueFromRedis();
 		// Process queue every 15 seconds to spread out requests
 		this.processingTimer = setInterval(() => this.processQueue(), 15000);
 	}
 
-	private async initCounter() {
+	async #initCounter() {
 		const exists = await redis.exists(COUNTER_KEY);
 		if (!exists) {
 			await redis.set(COUNTER_KEY, "0");
@@ -34,7 +26,7 @@ class PolygonService {
 		}
 	}
 
-	private async loadQueueFromRedis() {
+	async loadQueueFromRedis() {
 		try {
 			const queueData = await redis.get(QUEUE_KEY);
 			if (queueData) {
@@ -48,7 +40,7 @@ class PolygonService {
 		}
 	}
 
-	private async saveQueueToRedis() {
+	async saveQueueToRedis() {
 		try {
 			await redis.set(
 				QUEUE_KEY,
@@ -61,7 +53,7 @@ class PolygonService {
 		}
 	}
 
-	private sortQueue() {
+	sortQueue() {
 		// Sort by priority (higher number = higher priority)
 		this.requestQueue.sort((a, b) => b.priority - a.priority);
 	}
@@ -73,11 +65,7 @@ class PolygonService {
 	 * @param priority Higher number = higher priority (default: 1)
 	 * @returns Promise with API response
 	 */
-	async request<T>(
-		url: string,
-		config?: AxiosRequestConfig,
-		priority: number = 1
-	): Promise<T> {
+	async request(url, config, priority = 1) {
 		// First check cache
 		const cacheKey = `polygon:${url.replace(/[^a-zA-Z0-9]/g, "_")}`;
 		const cachedData = await redis.get(cacheKey);
@@ -106,7 +94,7 @@ class PolygonService {
 		});
 	}
 
-	private async processQueue() {
+	async processQueue() {
 		if (this.isProcessingQueue || this.requestQueue.length === 0) {
 			return;
 		}
@@ -175,7 +163,7 @@ class PolygonService {
 				}
 
 				resolve(response.data);
-			} catch (error: any) {
+			} catch (error) {
 				console.error(`❌ API request failed: ${url}`, error.message);
 
 				if (axios.isAxiosError(error) && error.response?.status === 429) {
@@ -204,7 +192,7 @@ class PolygonService {
 	}
 
 	// Different cache times based on endpoint type
-	private getCacheTimeForEndpoint(url: string): number {
+	getCacheTimeForEndpoint(url) {
 		if (url.includes("/aggs/ticker/") && url.includes("/prev")) {
 			// Previous day data doesn't change during the day
 			return 3600; // 1 hour
@@ -223,7 +211,7 @@ class PolygonService {
 	}
 
 	// Helper method for previous day data
-	async getPreviousDayData(ticker: string): Promise<any> {
+	async getPreviousDayData(ticker) {
 		return this.request(
 			`/v2/aggs/ticker/${ticker}/prev`,
 			undefined,
@@ -232,7 +220,7 @@ class PolygonService {
 	}
 
 	// Helper for searching tickers
-	async searchTickers(query: string): Promise<any> {
+	async searchTickers(query) {
 		return this.request(
 			`/v3/reference/tickers?search=${encodeURIComponent(query)}&active=true`,
 			undefined,
@@ -241,7 +229,7 @@ class PolygonService {
 	}
 
 	// Helper for getting grouped data
-	async getGroupedDailyData(date: string): Promise<any> {
+	async getGroupedDailyData(date) {
 		return this.request(
 			`/v2/aggs/grouped/locale/us/market/stocks/${date}`,
 			undefined,
@@ -250,7 +238,7 @@ class PolygonService {
 	}
 
 	// Helper for getting news
-	async getNews(ticker: string): Promise<any> {
+	async getNews(ticker) {
 		return this.request(
 			`/v2/reference/news?ticker=${ticker}`,
 			undefined,

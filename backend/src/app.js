@@ -1,17 +1,16 @@
-// app.ts - Express application setup
-import express, { Request, Response, NextFunction } from "express";
+import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import dotenv from "dotenv";
-import authRoutes from "./routes/auth";
-import watchlistRoutes from "./routes/watchlist";
-import alertsRoutes from "./routes/alerts";
-import stocksRoutes from "./routes/stocks";
-import aiRoutes from "./routes/ai";
+import authRoutes from "./routes/auth.js";
+import watchlistRoutes from "./routes/watchlist.js";
+import alertsRoutes from "./routes/alerts.js";
+import stocksRoutes from "./routes/stocks.js";
+import aiRoutes from "./routes/ai.js";
 import { PrismaClient } from "@prisma/client";
-import newsRoutes from "./routes/news";
-import "./services/polygonService";
+import newsRoutes from "./routes/news.js";
+import "./services/polygonService.js";
 
 dotenv.config();
 
@@ -35,12 +34,12 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/news", newsRoutes);
 
 // Health Check
-app.get("/", (req: Request, res: Response) => {
+app.get("/", (res) => {
 	res.json({ message: "Welcome to the Fintech API!" });
 });
 
 // Error Handling Middleware
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+app.use((err, res) => {
 	console.error(err.stack);
 	res.status(500).json({ error: "Something went wrong!" });
 });

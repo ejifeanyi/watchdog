@@ -1,22 +1,21 @@
-import express, { Request, Response } from "express";
+import express from "express";
 import dotenv from "dotenv";
 import axios from "axios";
-import redis from "../redis";
-import polygonService from "../services/polygonService";
+import redis from "../redis.js";
+import polygonService from "../services/polygonService.js";
 
 dotenv.config();
 const router = express.Router();
 const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY;
 
-// ✅ Route: Get Summarized Stock News
-router.get("/summarize", async (req: Request, res: Response) => {
+router.get("/summarize", async (req, res) => {
 	try {
 		const { ticker } = req.query;
 		if (!ticker || typeof ticker !== "string") {
 			return res.status(400).json({ error: "Stock ticker is required" });
 		}
 
-		// ✅ Increase cache time to 2 hours
+		// ✅ Set cache time to 2 hours
 		const cacheKey = `news_summary:${ticker}`;
 		const cachedSummary = await redis.get(cacheKey);
 		if (cachedSummary) {
@@ -24,7 +23,7 @@ router.get("/summarize", async (req: Request, res: Response) => {
 			return res.json(JSON.parse(cachedSummary));
 		}
 
-		// ✅ Step 1: Fetch Latest News from Polygon API (rate limited)
+		// ✅ Fetch Latest News from Polygon API (rate limited)
 		const newsResponse = await polygonService.getNews(ticker);
 
 		const articles = newsResponse.results;
@@ -34,35 +33,29 @@ router.get("/summarize", async (req: Request, res: Response) => {
 				.json({ error: "No news articles found for this stock." });
 		}
 
-		// ✅ Step 2: Extract the Most Relevant Articles
-		const latestArticles = articles.slice(0, 3).map((article: any) => ({
+		// ✅ Extract the Most Relevant Articles
+		const latestArticles = articles.slice(0, 3).map((article) => ({
 			title: article.title,
 			url: article.article_url,
 			published: article.published_utc,
 			summary: article.description,
 		}));
 
-		// ✅ Step 3: Generate AI-Powered Summarization
-		interface NewsArticle {
-			title: string;
-			url: string;
-			published: string;
-			summary: string;
-		}
+		const aiPrompt = `
+            You are a financial analyst summarizing stock news. 
+            Summarize the following news articles about ${ticker} into a short, concise financial update:
+            
+            ${latestArticles
+							.map((a) => `- ${a.title}: ${a.summary}`)
+							.join("\n")}
+            
+            Focus on key takeaways, stock impact, and investor relevance.
+        `;
 
-		const aiPrompt: string = `
-      You are a financial analyst summarizing stock news. 
-      Summarize the following news articles about ${ticker} into a short, concise financial update:
-      
-      ${(latestArticles as NewsArticle[])
-				.map((a) => `- ${a.title}: ${a.summary}`)
-				.join("\n")}
-      
-      Focus on key takeaways, stock impact, and investor relevance.
-    `;
-
-		const aiResponse = await axios.post(
-			"https://api.mistral.ai/v1/chat/completions",
+		const aiResponse =
+			(await axios.post) <
+			MistralResponse >
+			("https://api.mistral.ai/v1/chat/completions",
 			{
 				model: "mistral-tiny",
 				messages: [{ role: "user", content: aiPrompt }],
@@ -74,21 +67,20 @@ router.get("/summarize", async (req: Request, res: Response) => {
 					"Content-Type": "application/json",
 					Authorization: `Bearer ${MISTRAL_API_KEY}`,
 				},
-			}
-		);
+			});
 
 		const summarizedNews =
 			aiResponse.data.choices[0].message?.content || "No summary available.";
 
-		// ✅ Step 4: Store in Redis (cache for 2 hours)
+		// ✅ Store in Redis (cache for 2 hours)
 		const responsePayload = { ticker, summarizedNews, latestArticles };
 		await redis.set(cacheKey, JSON.stringify(responsePayload), "EX", 7200);
 
 		return res.json(responsePayload);
-	} catch (error: any) {
+	} catch (error) {
 		console.error("❌ Error fetching & summarizing news:", error);
 
-		if (error.response) {
+		if (axios.isAxiosError(error) && error.response) {
 			return res.status(error.response.status).json({
 				error:
 					error.response.data?.error?.message ||
