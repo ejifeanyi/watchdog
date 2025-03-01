@@ -6,18 +6,18 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 const router = Router();
 
-// Secret key for JWT (use environment variables in production)
-const ACCESS_TOKEN_SECRET = "access_secret";
+// Use the same JWT secret as your middleware
+const JWT_SECRET = process.env.JWT_SECRET || "secret";
 
 // Helper function to generate token
 const generateToken = (user) => {
-	const accessToken = jwt.sign(
+	const token = jwt.sign(
 		{ userId: user.id, email: user.email, name: user.name },
-		ACCESS_TOKEN_SECRET,
-		{ expiresIn: "24h" } // Longer-lived access token since we're not using refresh tokens
+		JWT_SECRET,
+		{ expiresIn: "24h" }
 	);
 
-	return { accessToken };
+	return token;
 };
 
 // Signup route
@@ -41,10 +41,10 @@ router.post("/signup", async (req, res) => {
 			data: { name, email, password: hashedPassword },
 		});
 
-		// Generate token
-		const { accessToken } = generateToken(user);
+		// Generate token without refresh token functionality
+		const token = generateToken(user);
 
-		res.json({ accessToken });
+		res.json({ token });
 	} catch (error) {
 		console.error("Signup error:", error);
 		res.status(500).json({ error: "Internal server error" });
@@ -67,32 +67,14 @@ router.post("/login", async (req, res) => {
 			return;
 		}
 
-		// Generate token
-		const { accessToken } = generateToken(user);
+		// Generate token without refresh token
+		const token = generateToken(user);
 
-		res.json({ accessToken });
+		res.json({ token });
 	} catch (error) {
 		console.error("Login error:", error);
 		res.status(500).json({ error: "Internal server error" });
 	}
 });
-
-// Simple middleware for protected routes
-export const authenticateToken = (req, res, next) => {
-	const authHeader = req.headers["authorization"];
-	const token = authHeader && authHeader.split(" ")[1];
-
-	if (!token) {
-		return res.status(401).json({ error: "Authentication required" });
-	}
-
-	jwt.verify(token, ACCESS_TOKEN_SECRET, (err, user) => {
-		if (err) {
-			return res.status(403).json({ error: "Invalid or expired token" });
-		}
-		req.user = user;
-		next();
-	});
-};
 
 export default router;
