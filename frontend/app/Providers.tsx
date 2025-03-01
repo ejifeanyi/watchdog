@@ -5,6 +5,8 @@ import ToastProvider from "./ToastProvider";
 import { AlertProvider } from "@/context/alert-context";
 import PageLayout from "@/components/page-layout";
 import Navbar from "@/components/navbar";
+import { WebSocketProvider } from "./SocketProvider";
+import { AlertNotifications } from "@/components/alert-notifications";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
 	return (
@@ -17,12 +19,15 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 			<AuthProvider>
 				<StocksProvider>
 					<AlertProvider>
-						<ToastProvider>
-							<PageLayout>
-								<Navbar />
-								{children}
-							</PageLayout>
-						</ToastProvider>
+						<WebSocketProvider>
+							<ToastProvider>
+								<PageLayout>
+									<AlertNotifications />
+									<Navbar />
+									{children}
+								</PageLayout>
+							</ToastProvider>
+						</WebSocketProvider>
 					</AlertProvider>
 				</StocksProvider>
 			</AuthProvider>
