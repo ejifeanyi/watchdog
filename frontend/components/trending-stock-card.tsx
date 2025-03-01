@@ -13,6 +13,7 @@ import { Bell, Eye, TrendingUp } from "lucide-react";
 import { Stock } from "@/types";
 import { toast } from "sonner";
 import { useAlerts } from "@/context/alert-context";
+import StockNewsButton from "./news-button";
 
 interface TrendingStockCardProps {
 	stock: Stock;
@@ -92,9 +93,18 @@ const TrendingStockCard: React.FC<TrendingStockCardProps> = ({
 					</div>
 
 					<div>
-						<CardTitle className="font-bold text-base">
-							{stock.symbol}
-						</CardTitle>
+						<div className="flex items-center gap-4 mb-4">
+							<CardTitle className="font-bold text-base">
+								{stock.symbol}
+							</CardTitle>
+							<StockNewsButton
+								ticker={stock.symbol}
+								stockName={stock.name}
+								className="w-1/3"
+								disabled={isLoading}
+							/>
+						</div>
+
 						{stock.name && (
 							<p className="text-xs text-muted-foreground truncate max-w-[150px]">
 								{stock.name}

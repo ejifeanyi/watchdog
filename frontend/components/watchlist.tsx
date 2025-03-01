@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import WishlistStockCard from "./wishlist-stock-card";
+import WishlistStockCard from "./watchlist-stock-card";
 
 interface WatchlistProps {
 	onViewDetails?: (symbol: string) => void;

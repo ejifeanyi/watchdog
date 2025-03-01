@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import { Stock } from "@/types";
 import { toast } from "sonner";
+import StockNewsButton from "./news-button";
 
 interface AlertItem extends Stock {
 	id: string;
@@ -106,9 +107,17 @@ const AlertStockCard: React.FC<AlertStockCardProps> = ({
 					</div>
 
 					<div>
-						<CardTitle className="font-bold text-base">
-							{alert.symbol}
-						</CardTitle>
+						<div className="flex items-center gap-4">
+							<CardTitle className="font-bold text-base">
+								{alert.symbol}
+							</CardTitle>
+							<StockNewsButton
+								ticker={alert.symbol}
+								stockName={alert.name}
+								className="w-1/3"
+								disabled={isLoading}
+							/>
+						</div>
 					</div>
 				</div>
 			</CardHeader>

@@ -10,6 +10,7 @@ import alertsRoutes from "./routes/alerts";
 import stocksRoutes from "./routes/stocks";
 import aiRoutes from "./routes/ai";
 import { PrismaClient } from "@prisma/client";
+import newsRoutes from "./routes/news";
 
 dotenv.config();
 
@@ -27,7 +28,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/stocks", stocksRoutes);
 app.use("/api/watchlist", watchlistRoutes);
 app.use("/api/alerts", alertsRoutes);
+
+// AI Routes
 app.use("/api/ai", aiRoutes);
+app.use("/api/news", newsRoutes);
 
 // Health Check
 app.get("/", (req: Request, res: Response) => {
