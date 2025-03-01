@@ -1,41 +1,20 @@
-// src/redis.js
 import { createClient } from "redis";
 
-const redisClient = createClient({
-	url: `redis://:${process.env.REDIS_PASSWORD}@${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`,
+const redis = createClient({
+	username: "default",
+	password: "m3sWr8Ir4BmlTf5GhfsbSr5k5xbyvBN7",
 	socket: {
-		reconnectStrategy: (retries) => Math.min(retries * 50, 1000),
+		host: "redis-18072.c62.us-east-1-4.ec2.redns.redis-cloud.com",
+		port: 18072,
 	},
 });
 
-redisClient.on("error", (err) => console.error("Redis Client Error", err));
-redisClient.on("connect", () => console.log("🔗 Redis connected"));
-redisClient.on("ready", () => console.log("✅ Redis ready"));
-redisClient.on("reconnecting", () => console.log("🔄 Redis reconnecting"));
+redis.on("error", (err) => console.log("Redis Client Error", err));
 
-// Connect to Redis
-(async () => {
-	try {
-		await redisClient.connect();
-	} catch (err) {
-		console.error("Failed to connect to Redis:", err);
-	}
-})();
+await client.connect();
 
-// Create wrapper with promisified methods to match your current usage
-const redis = {
-	get: async (key) => await redisClient.get(key),
-	set: async (key, value, ...args) => {
-		// Handle different calling patterns for set
-		if (args.length === 2 && args[0] === "ex") {
-			return await redisClient.set(key, value, { EX: args[1] });
-		} else {
-			const options = args[0] || {};
-			return await redisClient.set(key, value, options);
-		}
-	},
-	del: async (key) => await redisClient.del(key),
-	// Add any other Redis commands you use
-};
+await client.set("foo", "bar");
+const result = await client.get("foo");
+console.log(result);
 
 export default redis;
