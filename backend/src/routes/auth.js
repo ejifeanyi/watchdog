@@ -31,7 +31,8 @@ router.post("/signup", async (req, res) => {
 		if (!password) console.log("Password is missing from request");
 
 		if (!name || !email || !password) {
-			return res.status(400).json({ error: "All fields are required" });
+			res.status(400).json({ error: "All fields are required" });
+			return;
 		}
 
 		console.log("Checking if user already exists...");
@@ -42,13 +43,15 @@ router.post("/signup", async (req, res) => {
 
 			if (existingUser) {
 				console.log("User with email already exists:", email);
-				return res.status(400).json({ error: "Email already in use" });
+				res.status(400).json({ error: "Email already in use" });
+				return;
 			}
 		} catch (dbError) {
 			console.error("Database error when checking existing user:", dbError);
-			return res
+			res
 				.status(500)
 				.json({ error: "Database error", details: dbError.message });
+			return;
 		}
 
 		console.log("Hashing password...");
@@ -68,22 +71,25 @@ router.post("/signup", async (req, res) => {
 
 			// Generate token - exactly what frontend expects
 			const token = generateToken(user);
-			return res.status(200).json({ token });
+			res.status(200).json({ token });
+			return;
 		} catch (dbError) {
 			console.error("Database error when creating user:", dbError);
-			return res.status(500).json({
+			res.status(500).json({
 				error: "Database error",
 				details: dbError.message,
 				stack: dbError.stack,
 			});
+			return;
 		}
 	} catch (error) {
 		console.error("Signup error:", error);
-		return res.status(500).json({
+		res.status(500).json({
 			error: "Internal server error",
 			details: error.message,
 			stack: error.stack,
 		});
+		return;
 	}
 });
 
@@ -96,7 +102,8 @@ router.post("/login", async (req, res) => {
 
 		if (!email || !password) {
 			console.log("Missing login credentials");
-			return res.status(400).json({ error: "Email and password are required" });
+			res.status(400).json({ error: "Email and password are required" });
+			return;
 		}
 
 		console.log("Finding user with email:", email);
@@ -104,35 +111,40 @@ router.post("/login", async (req, res) => {
 			const user = await prisma.user.findUnique({ where: { email } });
 			if (!user) {
 				console.log("User not found for email:", email);
-				return res.status(401).json({ error: "Invalid credentials" });
+				res.status(401).json({ error: "Invalid credentials" });
+				return;
 			}
 
 			console.log("User found, comparing passwords...");
 			const isMatch = await bcrypt.compare(password, user.password);
 			if (!isMatch) {
 				console.log("Password does not match for user:", email);
-				return res.status(401).json({ error: "Invalid credentials" });
+				res.status(401).json({ error: "Invalid credentials" });
+				return;
 			}
 
 			console.log("Login successful for user ID:", user.id);
 			// Generate token - exactly what frontend expects
 			const token = generateToken(user);
-			return res.status(200).json({ token });
+			res.status(200).json({ token });
+			return;
 		} catch (dbError) {
 			console.error("Database error during login:", dbError);
-			return res.status(500).json({
+			res.status(500).json({
 				error: "Database error",
 				details: dbError.message,
 				stack: dbError.stack,
 			});
+			return;
 		}
 	} catch (error) {
 		console.error("Login error:", error);
-		return res.status(500).json({
+		res.status(500).json({
 			error: "Internal server error",
 			details: error.message,
 			stack: error.stack,
 		});
+		return;
 	}
 });
 
