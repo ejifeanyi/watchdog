@@ -1,4 +1,5 @@
-# Watchdog 
+# Watchdog
+
 Stock Tracking & AI Recommendation Platform
 
 ## Technical Documentation
@@ -6,44 +7,44 @@ Stock Tracking & AI Recommendation Platform
 ## Table of Contents
 
 - [Watchdog](#watchdog)
-  - [Technical Documentation](#technical-documentation)
-  - [Table of Contents](#table-of-contents)
-  - [System Overview](#system-overview)
-  - [Backend Architecture](#backend-architecture)
-    - [Core Components](#core-components)
-    - [Service-Based Architecture](#service-based-architecture)
-    - [Data Flow](#data-flow)
-  - [Performance Optimization Systems](#performance-optimization-systems)
-    - [Redis Caching Implementation](#redis-caching-implementation)
-  - [Key Caching Strategies:](#key-caching-strategies)
-  - [Queue Management System](#queue-management-system)
-  - [Rate Limiting Strategy](#rate-limiting-strategy)
-  - [Real-Time Communication Layer](#real-time-communication-layer)
-    - [WebSocket Implementation](#websocket-implementation)
-    - [Price Polling \& Batching Strategy](#price-polling--batching-strategy)
-  - [Alert Distribution System](#alert-distribution-system)
-  - [External API Integration](#external-api-integration)
-    - [Polygon.io Service](#polygonio-service)
-  - [Mistral AI Integration](#mistral-ai-integration)
-  - [Database Layer](#database-layer)
-    - [Schema Design](#schema-design)
-  - [Prisma ORM Implementation](#prisma-orm-implementation)
-  - [Authentication \& Security](#authentication--security)
-    - [JWT Implementation](#jwt-implementation)
-    - [Security Best Practices](#security-best-practices)
-  - [Installation \& Configuration](#installation--configuration)
-    - [Environment Setup](#environment-setup)
-  - [Dependencies](#dependencies)
-    - [Configuration Files](#configuration-files)
-  - [Deployment Pipeline](#deployment-pipeline)
-    - [Backend Deployment (Render)](#backend-deployment-render)
-    - [Frontend Deployment (Vercel)](#frontend-deployment-vercel)
-  - [API Reference](#api-reference)
-    - [Stock \& Watchlist Routes](#stock--watchlist-routes)
-    - [Alert Management Routes](#alert-management-routes)
-    - [AI Recommendation Routes](#ai-recommendation-routes)
-  - [Performance Monitoring](#performance-monitoring)
-  - [Contributing Guidelines](#contributing-guidelines)
+	- [Technical Documentation](#technical-documentation)
+	- [Table of Contents](#table-of-contents)
+	- [System Overview](#system-overview)
+	- [Backend Architecture](#backend-architecture)
+		- [Core Components](#core-components)
+		- [Service-Based Architecture](#service-based-architecture)
+		- [Data Flow](#data-flow)
+	- [Performance Optimization Systems](#performance-optimization-systems)
+		- [Redis Caching Implementation](#redis-caching-implementation)
+	- [Key Caching Strategies:](#key-caching-strategies)
+	- [Queue Management System](#queue-management-system)
+	- [Rate Limiting Strategy](#rate-limiting-strategy)
+	- [Real-Time Communication Layer](#real-time-communication-layer)
+		- [WebSocket Implementation](#websocket-implementation)
+		- [Price Polling \& Batching Strategy](#price-polling--batching-strategy)
+	- [Alert Distribution System](#alert-distribution-system)
+	- [External API Integration](#external-api-integration)
+		- [Polygon.io Service](#polygonio-service)
+	- [Mistral AI Integration](#mistral-ai-integration)
+	- [Database Layer](#database-layer)
+		- [Schema Design](#schema-design)
+	- [Prisma ORM Implementation](#prisma-orm-implementation)
+	- [Authentication \& Security](#authentication--security)
+		- [JWT Implementation](#jwt-implementation)
+		- [Security Best Practices](#security-best-practices)
+	- [Installation \& Configuration](#installation--configuration)
+		- [Environment Setup](#environment-setup)
+	- [Dependencies](#dependencies)
+		- [Configuration Files](#configuration-files)
+	- [Deployment Pipeline](#deployment-pipeline)
+		- [Backend Deployment (Render)](#backend-deployment-render)
+		- [Frontend Deployment (Vercel)](#frontend-deployment-vercel)
+	- [API Reference](#api-reference)
+		- [Stock \& Watchlist Routes](#stock--watchlist-routes)
+		- [Alert Management Routes](#alert-management-routes)
+		- [AI Recommendation Routes](#ai-recommendation-routes)
+	- [Performance Monitoring](#performance-monitoring)
+	- [Contributing Guidelines](#contributing-guidelines)
 
 ## System Overview
 
@@ -75,16 +76,16 @@ The backend follows a modular, service-based approach where different components
 
 ```plaintext
 ┌───────────────────┐ ┌───────────────────┐ ┌───────────────────┐
-│ │ │ │ │ │
-│ API Controllers │────▶│ Service Layer │────▶│ Data Access │
-│ │ │ │ │ Layer (Prisma) │
+│ 					│ │ 				  │ │ 					│
+│ API Controllers 	│───▶ Service Layer  ────▶ Data Access     │
+│ 					│ │ 				  │ │ Layer (Prisma) 	│
 └───────────────────┘ └───────────────────┘ └───────────────────┘
                                 │
                                 ▼
 ┌────────────────────────────────────────────────────────────────┐
-│ │
-│ Integration Services (External APIs) │
-│ │
+│ 																 │
+│ 			Integration Services (External APIs) 				 │
+│ 																 │
 └────────────────────────────────────────────────────────────────┘
                                 │
                        ┌────────┴────────┐
