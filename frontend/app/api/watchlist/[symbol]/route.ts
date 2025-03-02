@@ -62,10 +62,10 @@ export async function POST(request: NextRequest) {
 // app/api/watchlist/[symbol]/route.ts
 export async function DELETE(
 	request: NextRequest,
-	{ params }: { params: { symbol: string } }
+	{ params }: { params: Promise<{ symbol: string }> }
 ) {
 	try {
-		const { symbol } = params;
+		const symbol = (await params).symbol;
 
 		// Call your backend API
 		const response = await fetch(`${process.env.API_URL}/watchlist/${symbol}`, {
