@@ -21,7 +21,7 @@ const prisma = new PrismaClient();
 app.use(express.json());
 app.use(
 	cors({
-		origin: "http://localhost:3000",
+		origin: "https://watchdog-finance.vercel.app",
 		credentials: true,
 	})
 );
