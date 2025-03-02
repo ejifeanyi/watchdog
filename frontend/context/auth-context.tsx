@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		setUser(jwtDecode<User>(res.data.token));
 		setIsAuthenticated(true);
 		closeModals();
-		router.push("/dashboard"); // Redirect to a protected route
+		router.push("/");
 	};
 
 	const signup = async (name: string, email: string, password: string) => {
@@ -89,14 +89,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		setUser(jwtDecode<User>(res.data.token));
 		setIsAuthenticated(true);
 		closeModals();
-		window.location.reload();
+		router.push("/");
 	};
 
 	const logout = () => {
 		localStorage.removeItem("token");
 		setUser(null);
 		setIsAuthenticated(false);
-		window.location.reload();
+		router.push("/");
 	};
 
 	const openLoginModal = () => {
