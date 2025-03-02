@@ -31,11 +31,11 @@ export async function GET(request: NextRequest) {
 // app/api/alerts/[id]/route.ts
 export async function DELETE(
 	request: NextRequest,
-	context: { params: { id: string } }
+	context: { params: Record<string, string> } // Ensures compatibility with Next.js 15+
 ) {
 	try {
-		const { id } = context.params;
-		// Call your backend API
+		const id = context.params.id; // Correct access to `id`
+
 		const response = await fetch(`${process.env.API_URL}/alerts/${id}`, {
 			method: "DELETE",
 			headers: {
