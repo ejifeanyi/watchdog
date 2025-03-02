@@ -26,25 +26,35 @@ const Watchlist: React.FC<WatchlistProps> = ({ onViewDetails }) => {
 		setError(null);
 
 		try {
-			const token = localStorage.getItem("token");
+			console.log("fetching watchlist");
+			// if (!token) {
+			// 	setError("Please log in to view your watchlist");
+			// 	setLoading(false);
+			// 	return;
+			// }
 
-			if (!token) {
-				setError("Please log in to view your watchlist");
-				setLoading(false);
-				return;
-			}
+			// // Check if the token is expired
+			// const payload = JSON.parse(atob(token.split(".")[1]));
+			// if (payload.exp * 1000 < Date.now()) {
+			// 	// Token is expired, attempt to refresh it
+			// 	token = await refreshToken();
+			// }
 
-			const response = await fetch("http://localhost:5000/api/watchlist", {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			});
+			const response = await fetch(
+				"https://watchdog-c8e1.onrender.com/api/watchlist",
+				{
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("token")}`,
+					},
+				}
+			);
 
-			if (response.status === 401) {
-				localStorage.removeItem("token");
-				setError("Your session has expired. Please log in again.");
-				return;
-			}
+			// if (response.status === 401) {
+			// 	// Token is invalid even after refresh, log the user out
+			// 	localStorage.removeItem("token");
+			// 	setError("Your session has expired. Please log in again.");
+			// 	return;
+			// }
 
 			if (!response.ok) {
 				throw new Error(`HTTP error ${response.status}`);
@@ -74,7 +84,7 @@ const Watchlist: React.FC<WatchlistProps> = ({ onViewDetails }) => {
 			}
 
 			const response = await fetch(
-				`http://localhost:5000/api/watchlist/${symbol}`,
+				`https://watchdog-c8e1.onrender.com/api/watchlist/${symbol}`,
 				{
 					method: "DELETE",
 					headers: {
@@ -203,3 +213,37 @@ const Watchlist: React.FC<WatchlistProps> = ({ onViewDetails }) => {
 };
 
 export default Watchlist;
+// async function refreshToken(): Promise<string | null> {
+// 	try {
+// 		console.log("getting refresh token");
+// 		const oldToken = localStorage.getItem("token");
+// 		if (!oldToken) return null;
+// 		console.log("old token", oldToken);
+// 		const response = await fetch(
+// 			"https://watchdog-c8e1.onrender.com/api/auth/refresh",
+// 			{
+// 				method: "POST",
+// 				headers: {
+// 					Authorization: `Bearer ${oldToken}`,
+// 					"Content-Type": "application/json",
+// 				},
+// 			}
+// 		);
+// 		console.log("response", response);
+
+// 		if (!response.ok) {
+// 			localStorage.removeItem("token");
+// 			return null;
+// 		}
+// 		console.log("response 2", response);
+
+// 		const { token } = await response.json();
+// 		localStorage.setItem("token", token);
+// 		console.log("new token", token);
+// 		return token;
+// 	} catch (error) {
+// 		console.error("Failed to refresh token:", error);
+// 		localStorage.removeItem("token");
+// 		return null;
+// 	}
+// }

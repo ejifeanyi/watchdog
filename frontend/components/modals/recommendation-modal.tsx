@@ -44,14 +44,17 @@ const RecommendationDialog: React.FC<RecommendationDialogProps> = ({
 				// Extract symbols from watchlist data
 				const watchlist = watchlistData.map((stock) => stock.symbol);
 
-				const response = await fetch("http://localhost:5000/api/ai/recommend", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${token}`,
-					},
-					body: JSON.stringify({ watchlist }),
-				});
+				const response = await fetch(
+					"https://watchdog-c8e1.onrender.com/api/ai/recommend",
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${token}`,
+						},
+						body: JSON.stringify({ watchlist }),
+					}
+				);
 
 				if (!response.ok) {
 					throw new Error("Failed to get recommendations");

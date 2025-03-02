@@ -9,9 +9,10 @@ import {
 } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
+import { useRouter } from "next/navigation";
 
 interface User {
-	userId: string; // Changed to match payload from backend
+	userId: string;
 	email: string;
 	name: string;
 }
@@ -37,14 +38,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const [showLoginModal, setShowLoginModal] = useState(false);
 	const [showSignupModal, setShowSignupModal] = useState(false);
 
+	const router = useRouter();
+
 	// Load user from token on page refresh
 	useEffect(() => {
 		const token = localStorage.getItem("token");
 		if (token) {
 			try {
-				const decoded = jwtDecode<User>(token);
-				setUser(decoded);
-				setIsAuthenticated(true);
+				const decoded = jwtDecode<User & { exp: number }>(token); // Include 'exp' field
+				const currentTime = Date.now() / 1000; // Convert to seconds
+
+				if (decoded.exp < currentTime) {
+					console.error("Token expired");
+					logout();
+				} else {
+					setUser(decoded);
+					setIsAuthenticated(true);
+				}
 			} catch (error) {
 				console.error("Invalid token", error);
 				logout();
@@ -53,25 +63,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	}, []);
 
 	const login = async (email: string, password: string) => {
-		const res = await axios.post("http://localhost:5000/api/auth/login", {
-			email,
-			password,
-		});
+		const res = await axios.post(
+			"https://watchdog-c8e1.onrender.com/api/auth/login",
+			{ email, password }
+		);
 		localStorage.setItem("token", res.data.token);
 		setUser(jwtDecode<User>(res.data.token));
 		setIsAuthenticated(true);
 		closeModals();
-		window.location.reload();
+		router.push("/dashboard"); // Redirect to a protected route
 	};
 
 	const signup = async (name: string, email: string, password: string) => {
-		const res = await axios.post("http://localhost:5000/api/auth/signup", {
-			name,
-			email,
-			password,
-		});
+		const res = await axios.post(
+			"https://watchdog-c8e1.onrender.com/api/auth/signup",
+			{
+				name,
+				email,
+				password,
+			}
+		);
 
 		localStorage.setItem("token", res.data.token);
+		console.log("token", res.data.token);
 		setUser(jwtDecode<User>(res.data.token));
 		setIsAuthenticated(true);
 		closeModals();

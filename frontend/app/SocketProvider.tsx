@@ -34,7 +34,7 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 // URL should match your backend server
 const SOCKET_URL =
-	process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:5000";
+	process.env.NEXT_PUBLIC_SOCKET_URL || "https://watchdog-c8e1.onrender.com";
 
 export const WebSocketProvider = ({ children }: { children: ReactNode }) => {
 	const [isConnected, setIsConnected] = useState(false);

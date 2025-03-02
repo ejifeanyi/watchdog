@@ -54,7 +54,7 @@ const StockNewsDialog: React.FC<StockNewsDialogProps> = ({
 				}
 
 				const response = await fetch(
-					`http://localhost:5000/api/news/summarize?ticker=${ticker}`,
+					`https://watchdog-c8e1.onrender.com/api/news/summarize?ticker=${ticker}`,
 					{
 						method: "GET",
 						headers: {

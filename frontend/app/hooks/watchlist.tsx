@@ -25,11 +25,14 @@ export function useWatchlist() {
 				throw new Error("Authentication required");
 			}
 
-			const response = await fetch("http://localhost:5000/api/watchlist", {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			});
+			const response = await fetch(
+				"https://watchdog-c8e1.onrender.com/api/watchlist",
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error("Failed to fetch watchlist");
@@ -55,14 +58,17 @@ export function useWatchlist() {
 				throw new Error("Authentication required");
 			}
 
-			const response = await fetch("http://localhost:5000/api/watchlist/add", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${token}`,
-				},
-				body: JSON.stringify(stock),
-			});
+			const response = await fetch(
+				"https://watchdog-c8e1.onrender.com/api/watchlist/add",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${token}`,
+					},
+					body: JSON.stringify(stock),
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error("Failed to add to watchlist");
@@ -98,12 +104,15 @@ export function useWatchlist() {
 				throw new Error("Authentication required");
 			}
 
-			const response = await fetch(`http://localhost:5000/api/watchlist/${symbol}`, {
-				method: "DELETE",
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			});
+			const response = await fetch(
+				`https://watchdog-c8e1.onrender.com/api/watchlist/${symbol}`,
+				{
+					method: "DELETE",
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error("Failed to remove from watchlist");

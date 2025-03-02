@@ -10,7 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import TrendingStockCard from "./trending-stock-card";
 
-const TrendingStocks: React.FC = () => {
+const TrendingStocks = () => {
 	const {
 		trendingStocks,
 		loadingTrending,
@@ -49,20 +49,23 @@ const TrendingStocks: React.FC = () => {
 				throw new Error("Stock data not found");
 			}
 
-			const response = await fetch("http://localhost:5000/api/watchlist/add", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${localStorage.getItem("token")}`,
-				},
-				body: JSON.stringify({
-					symbol,
-					volume: stockData.volume,
-					price: stockData.price,
-					change: stockData.change,
-					changePercent: stockData.changePercent,
-				}),
-			});
+			const response = await fetch(
+				"https://watchdog-c8e1.onrender.com/api/watchlist/add",
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						Authorization: `Bearer ${localStorage.getItem("token")}`,
+					},
+					body: JSON.stringify({
+						symbol,
+						volume: stockData.volume,
+						price: stockData.price,
+						change: stockData.change,
+						changePercent: stockData.changePercent,
+					}),
+				}
+			);
 
 			if (!response.ok) {
 				throw new Error(`HTTP error ${response.status}`);

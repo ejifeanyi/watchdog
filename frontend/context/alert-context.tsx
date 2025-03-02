@@ -33,15 +33,17 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({
 		async (symbol: string, targetPrice: number): Promise<void> => {
 			try {
 				// Make sure this path is correct for your API route
-				const response = await fetch("http://localhost:5000/api/alerts/add", {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						// Include your auth token if required
-						Authorization: `Bearer ${localStorage.getItem("token")}`, // or however you store your token
-					},
-					body: JSON.stringify({ symbol, targetPrice }),
-				});
+				const response = await fetch(
+					"https://watchdog-c8e1.onrender.com/api/alerts/add",
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							Authorization: `Bearer ${localStorage.getItem("token")}`,
+						},
+						body: JSON.stringify({ symbol, targetPrice }),
+					}
+				);
 
 				if (!response.ok) {
 					const errorData = await response.text();

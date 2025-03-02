@@ -12,16 +12,16 @@ import axios from "axios";
 import { Stock } from "@/types";
 
 interface RawStockData {
-  symbol: string;
-  name?: string;
-  price?: number;
-  volume?: number;
-  change?: number;
-  changePercent?: number;
+	symbol: string;
+	name?: string;
+	price?: number;
+	volume?: number;
+	change?: number;
+	changePercent?: number;
 }
 
 // Make sure the API_BASE_URL points to your backend
-const API_BASE_URL = "http://localhost:5000"; // Update this to your backend URL
+const API_BASE_URL = "https://watchdog-c8e1.onrender.com"; // Update this to your backend URL
 
 interface StocksContextType {
 	// Trending stocks
@@ -63,9 +63,19 @@ export const StocksProvider: React.FC<{ children: ReactNode }> = ({
 		setTrendingError(null);
 
 		try {
+			const token = localStorage.getItem("token"); // Retrieve the token from storage
+			if (!token) {
+				throw new Error("No token found");
+			}
+
 			console.log("📊 Fetching trending stocks...");
 			const response = await axios.get<Stock[]>(
-				`${API_BASE_URL}/api/stocks/trending`
+				`${API_BASE_URL}/api/stocks/trending`,
+				{
+					headers: {
+						Authorization: `Bearer ${token}`, // Attach the token to the request
+					},
+				}
 			);
 			console.log("📊 Trending stocks response:", response.data);
 			setTrendingStocks(response.data);
@@ -91,14 +101,20 @@ export const StocksProvider: React.FC<{ children: ReactNode }> = ({
 		setSearchError(null);
 
 		try {
+			const token = localStorage.getItem("token");
+			if (!token) {
+				throw new Error("No token found. Please log in.");
+			}
+
 			const response = await axios.get(`${API_BASE_URL}/api/stocks/search`, {
 				params: { query },
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
 			});
 
 			console.log(`🔍 Search results:`, response.data);
 
-			// Transform search results to match the Stock type
-			// Note that search results may not have all the data that trending stocks have
 			const formattedResults = response.data.map((stock: RawStockData) => ({
 				symbol: stock.symbol,
 				name: stock.name || "",
@@ -109,9 +125,13 @@ export const StocksProvider: React.FC<{ children: ReactNode }> = ({
 			}));
 
 			setSearchResults(formattedResults);
-		} catch (err) {
+		} catch (err: Error | unknown) {
 			console.error("❌ Error searching stocks:", err);
-			setSearchError("Failed to search stocks. Please try again later.");
+			if (axios.isAxiosError(err) && err.response?.status === 401) {
+				setSearchError("Session expired. Please log in again.");
+			} else {
+				setSearchError("Failed to search stocks. Please try again later.");
+			}
 			setSearchResults([]);
 		} finally {
 			setIsSearching(false);

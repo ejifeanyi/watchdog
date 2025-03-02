@@ -36,11 +36,14 @@ const PriceAlerts = () => {
 				return;
 			}
 
-			const response = await fetch("http://localhost:5000/api/alerts", {
-				headers: {
-					Authorization: `Bearer ${token}`,
-				},
-			});
+			const response = await fetch(
+				"https://watchdog-c8e1.onrender.com/api/alerts",
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				}
+			);
 
 			if (response.status === 401) {
 				localStorage.removeItem("token");
@@ -77,7 +80,7 @@ const PriceAlerts = () => {
 			}
 
 			const response = await fetch(
-				`http://localhost:5000/api/alerts/${alertId}`,
+				`https://watchdog-c8e1.onrender.com/api/alerts/${alertId}`,
 				{
 					method: "DELETE",
 					headers: {
