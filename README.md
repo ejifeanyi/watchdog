@@ -109,16 +109,3 @@ For questions or feedback, feel free to reach out:
 - **Email:** [ifeanyiemmanueljoseph@gmail.com](ifeanyiemmanueljoseph@gmail.com)
 
 - **GitHub Issues:** Open an Issue
-
-  ```
-
-      ### Key Features of This `README.md`:
-      1. **Clear Call-to-Action**: The **Documentation** section is prominently placed at the top.
-      2. **Quick Start Guide**: Helps users get the project running quickly.
-      3. **Project Structure**: Provides an overview of the repository layout.
-      4. **Technologies Used**: Highlights the tech stack.
-      5. **License and Contributing**: Encourages collaboration and clarifies usage terms.
-
-      This `README.md` ensures users see the documentation link first while still providing essential information about the project.
-
-  ```
