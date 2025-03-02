@@ -7,7 +7,6 @@ const router = Router();
 const TRENDING_STOCKS_KEY = "trendingStocks";
 const TRENDING_UPDATE_INTERVAL = 3600; // Set cache time to 1 hour
 
-// Get previous trading day (simple approximation)
 const getPreviousTradingDay = () => {
 	const today = new Date();
 	const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
@@ -36,15 +35,13 @@ router.get("/trending", authenticate, async (req, res) => {
 			}
 		} catch (cacheError) {
 			console.error("Error retrieving cached trending stocks:", cacheError);
-			// Continue with fresh fetch if cache fails
 		}
 
 		console.log("🟡 Fetching trending stocks from Polygon API");
-		// Use getPreviousTradingDay() to get the last completed trading day
 		const date = getPreviousTradingDay();
 
 		try {
-			// Use our rate-limited service instead of direct axios call
+			// Use rate-limited service instead of direct axios call
 			const response = await polygonService.getGroupedDailyData(date);
 
 			if (!response) {
@@ -65,7 +62,7 @@ router.get("/trending", authenticate, async (req, res) => {
 			const stocks = response.results || [];
 			console.log(`📊 Received ${stocks.length} stocks from Polygon API`);
 
-			// Add additional validation to ensure we have necessary data
+			// additional validation to ensure we have necessary data
 			const validStocks = stocks.filter(
 				(stock) =>
 					stock &&
@@ -114,14 +111,12 @@ router.get("/trending", authenticate, async (req, res) => {
 				console.log("🟢 Cached trending stocks in Redis");
 			} catch (cacheError) {
 				console.error("Error caching trending stocks:", cacheError);
-				// Continue even if caching fails
 			}
 
 			res.json(slicedTrending);
 		} catch (apiError) {
 			console.error("❌ Error with Polygon API request:", apiError);
 
-			// Try to return a meaningful error response
 			const errorMessage =
 				apiError.response?.data?.error ||
 				apiError.message ||
@@ -135,7 +130,6 @@ router.get("/trending", authenticate, async (req, res) => {
 	}
 });
 
-// ✅ Search for Stocks with Cached Prices
 router.get("/search", async (req, res) => {
 	try {
 		const { query } = req.query;
@@ -159,11 +153,9 @@ router.get("/search", async (req, res) => {
 				console.error(
 					`Error parsing cached search results: ${parseError.message}`
 				);
-				// Continue with fresh search if cache is corrupt
 			}
 		}
 
-		// 1️⃣ Fetch Matching Stocks (Name & Symbol)
 		const response = await polygonService.searchTickers(query);
 		const stocks = response.results || [];
 
@@ -175,7 +167,6 @@ router.get("/search", async (req, res) => {
 
 		console.log(`📊 Found ${stocks.length} matching stocks`);
 
-		// 2️⃣ Batch fetch stock prices where possible
 		const stocksToProcess = stocks.slice(0, 5); // Limit to 5 stocks
 
 		// Use Promise.all for concurrent processing, but each API call is rate-limited
@@ -194,26 +185,20 @@ router.get("/search", async (req, res) => {
 							);
 							// Clear corrupted cache
 							await redis.del(cacheKey);
-							// Skip the cache logic and fall through to fetching fresh data
 						} else {
 							try {
-								// Try to parse as JSON
 								const parsedPrice = JSON.parse(cachedPrice);
-								// Extract price depending on data structure
 								let finalPrice;
 
 								if (typeof parsedPrice === "object" && parsedPrice !== null) {
 									finalPrice =
 										parsedPrice.c || parsedPrice.price || parsedPrice;
 									if (typeof finalPrice === "object") {
-										// If still an object, something's wrong - log and fetch fresh data
 										console.error(
 											`❌ Complex object in cache for ${stock.ticker}:`,
 											parsedPrice
 										);
-										// Clear corrupted cache
 										await redis.del(cacheKey);
-										// Skip to fetching fresh data
 										throw new Error("Complex object structure in cache");
 									}
 								} else {
@@ -233,7 +218,6 @@ router.get("/search", async (req, res) => {
 									volume: null,
 								};
 							} catch (e) {
-								// Not valid JSON, treat as a plain number string if possible
 								if (!isNaN(parseFloat(cachedPrice))) {
 									console.log(
 										`🔵 Cache Hit: ${stock.ticker} = $${cachedPrice}`
@@ -247,43 +231,35 @@ router.get("/search", async (req, res) => {
 										volume: null,
 									};
 								} else {
-									// Not a number string either, clear corrupt cache and fetch fresh data
 									console.error(
 										`❌ Invalid cache data for ${stock.ticker}: ${cachedPrice}`
 									);
 									await redis.del(cacheKey);
-									// Fall through to fetching fresh data
 								}
 							}
 						}
 					}
 
-					// Fetch fresh price data
 					const priceResponse = await polygonService.getPreviousDayData(
 						stock.ticker
 					);
 					const priceData = priceResponse?.results?.[0];
 
-					// Safely extract price data
 					let stockPrice = null;
 					if (priceData && typeof priceData.c !== "undefined") {
 						stockPrice = priceData.c;
 					}
 
-					// Cache price data properly
 					if (stockPrice !== null) {
-						// Ensure we're storing a numeric value as a string
 						if (typeof stockPrice === "number") {
 							await redis.set(cacheKey, stockPrice.toString(), "ex", 3600);
 						} else if (typeof stockPrice === "object") {
-							// Log this unusual case and store the entire object properly
 							console.warn(
 								`Warning: stockPrice for ${stock.ticker} is an object:`,
 								stockPrice
 							);
 							await redis.set(cacheKey, JSON.stringify(stockPrice), "ex", 3600);
 						} else {
-							// String or other primitive
 							await redis.set(cacheKey, stockPrice.toString(), "ex", 3600);
 						}
 					}
@@ -313,7 +289,6 @@ router.get("/search", async (req, res) => {
 			})
 		);
 
-		// Cache the search results
 		await redis.set(searchCacheKey, JSON.stringify(enhancedStocks), "ex", 1800); // 30 minutes
 
 		console.log("✅ Enhanced stocks with prices:", enhancedStocks);

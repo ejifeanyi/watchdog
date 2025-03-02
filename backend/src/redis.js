@@ -13,10 +13,4 @@ redis.on("error", (err) => console.log("Redis Client Error", err));
 
 await redis.connect();
 
-// These test lines should probably be removed in production
-// Commenting them out rather than removing to show the fix
-// await redis.set("foo", "bar");
-// const result = await redis.get("foo");
-// console.log(result);
-
 export default redis;

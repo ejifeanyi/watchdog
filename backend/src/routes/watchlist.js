@@ -5,7 +5,6 @@ import { authenticate } from "../middleware/auth.js";
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// Add stock to watchlist
 router.post("/add", authenticate, async (req, res) => {
 	const { symbol, volume, price, change, changePercent } = req.body;
 	const userId = req.user?.userId;
@@ -21,13 +20,11 @@ router.post("/add", authenticate, async (req, res) => {
 	}
 
 	try {
-		// First check if the stock already exists in the user's watchlist
 		const existingStock = await prisma.watchlist.findFirst({
 			where: { symbol, userId },
 		});
 
 		if (existingStock) {
-			// Update the existing stock
 			const updatedStock = await prisma.watchlist.update({
 				where: { id: existingStock.id },
 				data: {
@@ -39,7 +36,6 @@ router.post("/add", authenticate, async (req, res) => {
 			});
 			res.json(updatedStock);
 		} else {
-			// Create a new stock entry
 			const stock = await prisma.watchlist.create({
 				data: {
 					symbol,
@@ -58,7 +54,6 @@ router.post("/add", authenticate, async (req, res) => {
 	}
 });
 
-// Get user's watchlist
 router.get("/", authenticate, async (req, res) => {
 	const userId = req.user?.userId;
 
@@ -79,7 +74,6 @@ router.get("/", authenticate, async (req, res) => {
 	}
 });
 
-// Remove stock from watchlist
 router.delete("/:symbol", authenticate, async (req, res) => {
 	const { symbol } = req.params;
 	const userId = req.user?.userId;
@@ -98,7 +92,6 @@ router.delete("/:symbol", authenticate, async (req, res) => {
 	}
 });
 
-// Update stock in watchlist (for refreshing price data)
 router.put("/:symbol", authenticate, async (req, res) => {
 	const { symbol } = req.params;
 	const { volume, price, change, changePercent } = req.body;

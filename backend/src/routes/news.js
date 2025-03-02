@@ -34,7 +34,7 @@ router.get("/summarize", async (req, res) => {
 		}
 
 		// ✅ Extract the Most Relevant Articles
-		const latestArticles = articles.slice(0, 3).map((article) => ({
+		const latestArticles = articles.slice(0, 4).map((article) => ({
 			title: article.title,
 			url: article.article_url,
 			published: article.published_utc,

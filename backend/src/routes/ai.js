@@ -34,7 +34,6 @@ router.post("/recommend", async (req, res) => {
             Format each recommendation as a separate paragraph with clear headers.
         `;
 
-		// Call Mistral AI REST API
 		const response = await axios.post(
 			"https://api.mistral.ai/v1/chat/completions",
 			{

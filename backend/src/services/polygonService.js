@@ -36,9 +36,7 @@ class PolygonService {
 					);
 				} catch (parseError) {
 					console.error("Error parsing queue data from Redis:", parseError);
-					// Initialize with empty queue rather than failing
 					this.requestQueue = [];
-					// Optionally, clear the corrupt data
 					await redis.del(QUEUE_KEY);
 					console.log("Cleared corrupted queue data from Redis");
 				}

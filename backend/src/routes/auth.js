@@ -6,10 +6,8 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 const router = Router();
 
-// Use the same JWT secret as your middleware
 const JWT_SECRET = process.env.JWT_SECRET || "secret";
 
-// Helper function to generate token
 const generateToken = (user) => {
 	return jwt.sign(
 		{ userId: user.id, email: user.email, name: user.name },
@@ -18,14 +16,12 @@ const generateToken = (user) => {
 	);
 };
 
-// Signup route - modified to match frontend expectations
 router.post("/signup", async (req, res) => {
 	try {
 		console.log("Signup request received with body:", JSON.stringify(req.body));
 
 		const { name, email, password } = req.body;
 
-		// Enhanced validation logging
 		if (!name) console.log("Name is missing from request");
 		if (!email) console.log("Email is missing from request");
 		if (!password) console.log("Password is missing from request");
@@ -69,7 +65,6 @@ router.post("/signup", async (req, res) => {
 
 			console.log("User created successfully with ID:", user.id);
 
-			// Generate token - exactly what frontend expects
 			const token = generateToken(user);
 			res.status(200).json({ token });
 			return;
@@ -93,7 +88,6 @@ router.post("/signup", async (req, res) => {
 	}
 });
 
-// Login route - modified to match frontend expectations
 router.post("/login", async (req, res) => {
 	try {
 		console.log("Login request received with body:", JSON.stringify(req.body));
@@ -124,7 +118,6 @@ router.post("/login", async (req, res) => {
 			}
 
 			console.log("Login successful for user ID:", user.id);
-			// Generate token - exactly what frontend expects
 			const token = generateToken(user);
 			res.status(200).json({ token });
 			return;

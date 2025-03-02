@@ -5,7 +5,6 @@ import { authenticate } from "../middleware/auth.js";
 const prisma = new PrismaClient();
 const router = express.Router();
 
-// Add alert
 router.post("/add", authenticate, async (req, res) => {
 	const { symbol, targetPrice } = req.body;
 	const userId = req.user?.userId;
@@ -29,7 +28,6 @@ router.post("/add", authenticate, async (req, res) => {
 	}
 });
 
-// Get all alerts for the user
 router.get("/", authenticate, async (req, res) => {
 	const userId = req.user?.userId;
 
@@ -46,7 +44,6 @@ router.get("/", authenticate, async (req, res) => {
 	}
 });
 
-// Delete alert
 router.delete("/:id", authenticate, async (req, res) => {
 	const { id } = req.params;
 	const userId = req.user?.userId;
