@@ -67,31 +67,32 @@ For detailed documentation, including setup instructions, API references, and ar
     ```
     watchdog/
 
-├── backend/ # Backend code
-│ ├── src/ # Source code
-│ │ ├── routes/ # API routes
-│ │ ├── middleware/ # Middleware functions
-│ │ ├── services/ # Business logic
-│ │ ├── index.js # Entry point
-│ │ ├── app.js # Express app setup
-│ │ ├── socket.js # WebSocket setup
-│ │ └── redis.js # Redis configuration
-│ ├── prisma/ # Prisma ORM schema and migrations
-│ ├── node_modules/ # Node.js dependencies
-│ ├── .env # Environment variables
-│ ├── .gitignore # Git ignore file
-│ └── package.json # Node.js dependencies
-├── frontend/ # Frontend code (Next.js)
-│ ├── public/ # Static assets
-│ ├── src/ # Source code
-│ ├── node_modules/ # Node.js dependencies
-│ ├── .env # Environment variables
-│ ├── .gitignore # Git ignore file
-│ └── package.json # Node.js dependencies
-├── DOCUMENTATION.md # Documentation
-|\_\_ LICENSE # License
-└── README.md # This file
-```
+      ├── backend/ # Backend code
+      │ ├── src/ # Source code
+      │ │ ├── routes/ # API routes
+      │ │ ├── middleware/ # Middleware functions
+      │ │ ├── services/ # Business logic
+      │ │ ├── index.js # Entry point
+      │ │ ├── app.js # Express app setup
+      │ │ ├── socket.js # WebSocket setup
+      │ │ └── redis.js # Redis configuration
+      │ ├── prisma/ # Prisma ORM schema and migrations
+      │ ├── node_modules/ # Node.js dependencies
+      │ ├── .env # Environment variables
+      │ ├── .gitignore # Git ignore file
+      │ └── package.json # Node.js dependencies
+      ├── frontend/ # Frontend code (Next.js)
+      │ ├── public/ # Static assets
+      │ ├── src/ # Source code
+      │ ├── node_modules/ # Node.js dependencies
+      │ ├── .env # Environment variables
+      │ ├── .gitignore # Git ignore file
+      │ └── package.json # Node.js dependencies
+      ├── DOCUMENTATION.md # Documentation
+      |\_\_ LICENSE # License
+      └── README.md # This file
+
+   ```
 
 ### 🔧 Technologies Used
 
@@ -124,3 +125,4 @@ For questions or feedback, feel free to reach out:
 - **Email:** [ifeanyiemmanueljoseph@gmail.com](ifeanyiemmanueljoseph@gmail.com)
 
 - **GitHub Issues:** Open an Issue
+```
