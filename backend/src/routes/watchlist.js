@@ -133,6 +133,7 @@ router.put("/:symbol", authenticate, async (req, res) => {
 	} catch (error) {
 		console.error("Error updating stock in watchlist:", error);
 		res.status(500).json({ error: "Failed to update stock" });
+		return;
 	}
 });
 
