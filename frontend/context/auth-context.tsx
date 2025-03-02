@@ -9,7 +9,6 @@ import {
 } from "react";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-import { useRouter } from "next/navigation";
 
 interface User {
 	userId: string;
@@ -37,8 +36,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	const [showLoginModal, setShowLoginModal] = useState(false);
 	const [showSignupModal, setShowSignupModal] = useState(false);
-
-	const router = useRouter();
 
 	// Load user from token on page refresh
 	useEffect(() => {
@@ -71,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		setUser(jwtDecode<User>(res.data.token));
 		setIsAuthenticated(true);
 		closeModals();
-		router.push("/");
+		window.location.reload();
 	};
 
 	const signup = async (name: string, email: string, password: string) => {
@@ -89,14 +86,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 		setUser(jwtDecode<User>(res.data.token));
 		setIsAuthenticated(true);
 		closeModals();
-		router.push("/");
+		window.location.reload();
 	};
 
 	const logout = () => {
 		localStorage.removeItem("token");
 		setUser(null);
 		setIsAuthenticated(false);
-		router.push("/");
+		window.location.reload();
 	};
 
 	const openLoginModal = () => {
