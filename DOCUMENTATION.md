@@ -1,10 +1,11 @@
-# Stock Tracking & AI Recommendation Platform
+# Watchdog 
+Stock Tracking & AI Recommendation Platform
 
 ## Technical Documentation
 
 ## Table of Contents
 
-- [Stock Tracking \& AI Recommendation Platform](#stock-tracking--ai-recommendation-platform)
+- [Watchdog](#watchdog)
   - [Technical Documentation](#technical-documentation)
   - [Table of Contents](#table-of-contents)
   - [System Overview](#system-overview)
