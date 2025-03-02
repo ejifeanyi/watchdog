@@ -1,6 +1,7 @@
 import { Router } from "express";
 import polygonService from "../services/polygonService.js";
 import redis from "../redis.js";
+import { authenticate } from "../middleware/auth.js";
 
 const router = Router();
 const TRENDING_STOCKS_KEY = "trendingStocks";
@@ -23,7 +24,7 @@ const getPreviousTradingDay = () => {
 };
 
 // ✅ Route: Get Trending Stocks (Cached in Redis)
-router.get("/trending", async (req, res) => {
+router.get("/trending", authenticate, async (req, res) => {
 	try {
 		// Try to get cached trending stocks
 		try {
