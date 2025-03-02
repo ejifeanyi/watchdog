@@ -71,26 +71,29 @@ The backend architecture is built on Node.js and Express, with several critical 
 ### Service-Based Architecture
 
 The backend follows a modular, service-based approach where different components handle specific responsibilities:
+
+```plaintext
 ┌───────────────────┐ ┌───────────────────┐ ┌───────────────────┐
 │ │ │ │ │ │
 │ API Controllers │────▶│ Service Layer │────▶│ Data Access │
 │ │ │ │ │ Layer (Prisma) │
 └───────────────────┘ └───────────────────┘ └───────────────────┘
-│
-▼
+                                │
+                                ▼
 ┌────────────────────────────────────────────────────────────────┐
 │ │
 │ Integration Services (External APIs) │
 │ │
 └────────────────────────────────────────────────────────────────┘
-│
-┌────────┴────────┐
-▼ ▼
-┌─────────────────┐ ┌─────────────────┐
-│ │ │ │
-│ Redis Cache │ │ Redis Queue │
-│ │ │ │
-└─────────────────┘ └─────────────────┘
+                                │
+                       ┌────────┴────────┐
+                       ▼                 ▼
+             ┌─────────────────┐ ┌─────────────────┐
+             │                 │ │                 │
+             │   Redis Cache   │ │   Redis Queue   │
+             │                 │ │                 │
+             └─────────────────┘ └─────────────────┘
+```
 
 ### Data Flow
 
@@ -257,15 +260,15 @@ async getNews(ticker) {
 
 The platform uses Socket.IO for real-time updates to connected clients. The implementation:
 
-**Initializes Socket.IO** with the Express server
+- **Initializes Socket.IO** with the Express server
 
-**Manages Client Connections** through connection events
+- **Manages Client Connections** through connection events
 
-**Creates Client Rooms** for targeted alerts and updates
+- **Creates Client Rooms** for targeted alerts and updates
 
-**Distributes Stock Updates** to relevant subscribers
+- **Distributes Stock Updates** to relevant subscribers
 
-**Delivers Price Alerts** through room-based targeting
+- **Delivers Price Alerts** through room-based targeting
 
 ```javascript
 // WebSocket initialization
@@ -394,13 +397,13 @@ async function fetchBatchedStockPrices(io) {
 
 The platform implements a real-time alert system that:
 
-**Checks Current Prices** against user-defined target prices
+- **Checks Current Prices** against user-defined target prices
 
-**Identifies Triggered Alerts** when prices exceed targets
+- **Identifies Triggered Alerts** when prices exceed targets
 
-**Emits Alert Notifications** to specific user rooms
+- **Emits Alert Notifications** to specific user rooms
 
-**Updates Alert Status** in the database
+- **Updates Alert Status** in the database
 
 ```javascript
 async function checkPriceAlerts(io, symbol, currentPrice) {
@@ -658,19 +661,19 @@ NODE_ENV=production
 
 Core dependencies include:
 
-**Express.js:** Web server framework
+- **Express.js:** Web server framework
 
-**Socket.IO:** WebSocket implementation
+- **Socket.IO:** WebSocket implementation
 
-**Prisma:** ORM for database operations
+- **Prisma:** ORM for database operations
 
-**Redis:** Caching and queue management
+- **Redis:** Caching and queue management
 
-**BullMQ:** Queue processing system
+- **BullMQ:** Queue processing system
 
-**Axios:** HTTP client for API requests
+- **Axios:** HTTP client for API requests
 
-**JSON Web Token:** Authentication tokens
+- **JSON Web Token:** Authentication tokens
 
 ### Configuration Files
 
@@ -690,31 +693,31 @@ Key configuration files:
 
 Steps for deploying to Render:
 
-**Create a Web Service** on Render dashboard
+- **Create a Web Service** on Render dashboard
 
-**Connect GitHub Repository** to Render
+- **Connect GitHub Repository** to Render
 
-**Configure Build Command:** `npm install && npx prisma generate`
+- **Configure Build Command:** `npm install && npx prisma generate`
 
-**Configure Start Command:** `npm start`
+- **Configure Start Command:** `npm start`
 
-**Add Environment Variables** from `.env` file
+- **Add Environment Variables** from `.env` file
 
-**Deploy Application** and monitor logs
+- **Deploy Application** and monitor logs
 
 ### Frontend Deployment (Vercel)
 
 Steps for deploying the frontend to Vercel:
 
-**Install Vercel CLI:** `npm install -g vercel`
+- **Install Vercel CLI:** `npm install -g vercel`
 
-**Login to Vercel:** `vercel login`
+- **Login to Vercel:** `vercel login`
 
-**Deploy Frontend:** `vercel --prod`
+- **Deploy Frontend:** `vercel --prod`
 
-**Configure Environment Variables** in Vercel dashboard
+- **Configure Environment Variables** in Vercel dashboard
 
-**Set Backend API URL** in environment variables
+- **Set Backend API URL** in environment variables
 
 ## API Reference
 
@@ -722,7 +725,7 @@ Authentication Routes
 
 **Signup**
 
-**Endpoint:** POST /auth/signup
+- **Endpoint:** POST /auth/signup
 
 Body:
 
@@ -747,7 +750,7 @@ Body:
 }
 ```
 
-**Login**
+- **Login**
 
 **Endpoint:** POST /auth/login
 
@@ -775,7 +778,7 @@ Body:
 
 ### Stock & Watchlist Routes
 
-**Add to Watchlist**
+- **Add to Watchlist**
 
 **Endpoint:** POST /watchlist/add
 
@@ -787,17 +790,17 @@ Body:
 }
 ```
 
-**Get Watchlist**
+- **Get Watchlist**
 
 **Endpoint:** GET /watchlist
 
-**Remove from Watchlist**
+- **Remove from Watchlist**
 
 **Endpoint:** DELETE /watchlist/:symbol
 
 ### Alert Management Routes
 
-**Add Alert**
+- **Add Alert**
 
 **Endpoint:** POST /alerts/add
 
@@ -810,17 +813,18 @@ Body:
 }
 ```
 
-**Get Alerts**
+- **Get Alerts**
 
 **Endpoint:** GET /alerts
 
-**Delete Alert**
+- **Delete Alert**
 
 **Endpoint:** DELETE /alerts/:id
 
 ### AI Recommendation Routes
 
-**Get Stock Recommendations**
+- **Get Stock Recommendations**
+
 **Endpoint:** POST /recommend
 
 Body:
