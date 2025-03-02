@@ -3,6 +3,7 @@ export const authenticate = (req, res, next) => {
 		const token = req.headers.authorization?.split(" ")[1];
 
 		if (!token) {
+			console.log("No token provided"); // Log for debugging
 			return res.status(401).json({ error: "Authentication required" });
 		}
 
@@ -13,6 +14,7 @@ export const authenticate = (req, res, next) => {
 
 		next();
 	} catch (error) {
+		console.log("Token verification failed:", error.message); // Log for debugging
 		return res.status(401).json({ error: "Invalid token" });
 	}
 };
