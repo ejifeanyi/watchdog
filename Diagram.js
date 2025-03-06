@@ -1,0 +1,7 @@
+// echo "[Frontend] --> [Express.js] --> [WebSockets] --> [Polygon API]"
+// echo "                  |                     |"
+// echo "                  v                     v"
+// echo "              [Prisma] <--> [PostgreSQL]"
+// echo "                  |"
+// echo "                  v"
+// echo "              [Redis] <--> [Mistral AI]" 
