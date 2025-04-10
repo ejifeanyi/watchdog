@@ -105,7 +105,7 @@ async function updateMonitoredSymbols() {
 	}
 }
 
-// New batched approach to fetch prices
+// batched approach to fetch prices
 async function fetchBatchedStockPrices(io) {
 	if (monitoredSymbols.size === 0) {
 		console.log("No stocks to monitor, skipping price updates");
